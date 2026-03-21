@@ -15,6 +15,7 @@ const adminRoutes  = require('./routes/admin');
 const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
+app.set('trust proxy', 1);
 connectDB();
 
 app.set('view engine', 'ejs');
