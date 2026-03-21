@@ -1,4 +1,21 @@
 require('dotenv').config();
+// ── Auto-create admin after DB connects ──────────
+const mongoose = require('mongoose');
+mongoose.connection.once('open', async () => {
+  try {
+    const User      = require('./models/User');
+    const adminName = process.env.ADMIN_USERNAME || 'Websinaro';
+    const adminPass = process.env.ADMIN_PASSWORD || 'Admin@1234';
+    const exists    = await User.findOne({ username: adminName });
+    if (!exists) {
+      await User.create({ username: adminName, password: adminPass, isAdmin: true, isVerified: true });
+      console.log(`✅  Admin created → login: ${adminName} / ${adminPass}`);
+    } else if (!exists.isAdmin) {
+      await User.updateOne({ username: adminName }, { isAdmin: true, isVerified: true });
+      console.log(`✅  Existing "${adminName}" promoted to admin`);
+    }
+  } catch (e) { console.error('Admin init:', e.message); }
+});
 const express      = require('express');
 const path         = require('path');
 const cookieParser = require('cookie-parser');
@@ -15,7 +32,6 @@ const adminRoutes  = require('./routes/admin');
 const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
-app.set('trust proxy', 1);
 connectDB();
 
 app.set('view engine', 'ejs');

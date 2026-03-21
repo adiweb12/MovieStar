@@ -190,7 +190,7 @@ function prependReview(r) {
     <div class="rcard-head">
       <div class="rcard-left">
         <div class="rc-av">${init}</div>
-        <div><div class="rc-name">${esc(r.userId.username)}</div><small>${date}</small></div>
+        <div><a href="/profile/${esc(r.userId.username)}" class="rc-name rc-name-link">${esc(r.userId.username)}</a><small>${date}</small></div>
       </div>
       <div class="rcard-right">
         <div class="rc-stars">${stars}<span class="rbadge">${r.rating}/5</span></div>
@@ -285,3 +285,18 @@ document.querySelectorAll('a[href^="#"]').forEach(a => {
     if (t) { e.preventDefault(); t.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
   });
 });
+
+// ── Profile: reviewer name link in newly added cards ──
+// Already handled in prependReview — username links to /profile/username
+
+// ── Highlight active nav link ──────────────────────
+(function(){
+  const path = window.location.pathname;
+  document.querySelectorAll('.nav-link').forEach(a => {
+    if (a.getAttribute('href') === path) a.classList.add('active');
+  });
+  document.querySelectorAll('.sb-link').forEach(a => {
+    if (window.location.pathname.startsWith(a.getAttribute('href')) && a.getAttribute('href') !== '/')
+      a.classList.add('active');
+  });
+})();

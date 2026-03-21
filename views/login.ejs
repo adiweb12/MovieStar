@@ -4,44 +4,123 @@
     <div class="auth-logo">🎬 <span>MovieStar</span></div>
     <h1><%= mode==='register'?'Create Account':'Welcome Back' %></h1>
     <p class="auth-sub"><%= mode==='register'?'Join to review movies':'Sign in to continue' %></p>
-    <% if(error){%><div class="alert-err"><i class="fas fa-exclamation-circle"></i> <%=error%></div><%}%>
+
+    <% if(error){ %>
+      <div class="alert-err"><i class="fas fa-exclamation-circle"></i> <%- error %></div>
+    <% } %>
+
+    <% if(typeof suggestions !== 'undefined' && suggestions.length){ %>
+      <div class="suggestions-box">
+        <p>Available usernames:</p>
+        <div class="sug-list">
+          <% suggestions.forEach(s=>{ %>
+            <button type="button" class="sug-pill" onclick="useSuggestion('<%=s%>')"><%=s%></button>
+          <% }) %>
+        </div>
+      </div>
+    <% } %>
+
     <div class="auth-tabs">
       <a href="/auth/login?redirect=<%=redirect%>"    class="atab <%=mode==='login'   ?'active':''%>">Login</a>
       <a href="/auth/register?redirect=<%=redirect%>" class="atab <%=mode==='register'?'active':''%>">Register</a>
     </div>
+
     <form action="/auth/<%=mode%>" method="POST" class="aform">
       <input type="hidden" name="redirect" value="<%=redirect%>"/>
       <div class="fg">
         <label>Username</label>
-        <div class="iw"><i class="fas fa-user"></i>
-          <input type="text" name="username" placeholder="Your username" required
-            autocomplete="username" <%=mode==='register'?'minlength="3" maxlength="20" pattern="[a-zA-Z0-9_]+"':''%>/>
+        <div class="iw">
+          <i class="fas fa-user"></i>
+          <input type="text" id="unameInput" name="username" placeholder="Your username" required
+            autocomplete="username"
+            <%=mode==='register'?'minlength="3" maxlength="20" pattern="[a-zA-Z0-9_]+"':''%>/>
+          <% if(mode==='register'){ %>
+            <span id="unavail-ico" class="unav-ico" style="display:none"></span>
+          <% } %>
         </div>
-        <%if(mode==='register'){%><small class="hint">3–20 chars · letters, numbers, underscores</small><%}%>
+        <% if(mode==='register'){ %>
+          <small class="hint">3–20 chars · letters, numbers, underscores</small>
+          <div id="un-feedback" class="un-feedback"></div>
+        <% } %>
       </div>
+
       <div class="fg">
         <label>Password</label>
-        <div class="iw"><i class="fas fa-lock"></i>
+        <div class="iw">
+          <i class="fas fa-lock"></i>
           <input type="password" id="pwdinp" name="password" placeholder="Your password" required
             autocomplete="<%=mode==='register'?'new-password':'current-password'%>"
             <%=mode==='register'?'minlength="6"':''%>/>
-          <button type="button" id="eyebtn" class="eye-btn"><i class="fas fa-eye" id="eyeico"></i></button>
+          <button type="button" id="eyebtn" class="eye-btn">
+            <i class="fas fa-eye" id="eyeico"></i>
+          </button>
         </div>
-        <%if(mode==='register'){%><small class="hint">Minimum 6 characters</small><%}%>
+        <% if(mode==='register'){ %>
+          <small class="hint">Minimum 6 characters</small>
+        <% } %>
       </div>
+
       <button type="submit" class="btn btn-red btn-full btn-lg">
-        <%if(mode==='register'){%><i class="fas fa-user-plus"></i> Create Account
-        <%}else{%><i class="fas fa-sign-in-alt"></i> Login<%}%>
+        <% if(mode==='register'){ %>
+          <i class="fas fa-user-plus"></i> Create Account
+        <% }else{ %>
+          <i class="fas fa-sign-in-alt"></i> Login
+        <% } %>
       </button>
     </form>
+
     <p class="auth-switch">
-      <%if(mode==='register'){%>Already have an account? <a href="/auth/login?redirect=<%=redirect%>">Login</a>
-      <%}else{%>New here? <a href="/auth/register?redirect=<%=redirect%>">Sign Up</a><%}%>
+      <% if(mode==='register'){ %>
+        Already have an account? <a href="/auth/login?redirect=<%=redirect%>">Login</a>
+      <% }else{ %>
+        New here? <a href="/auth/register?redirect=<%=redirect%>">Sign Up</a>
+      <% } %>
     </p>
   </div>
 </div>
+
 <script>
-  const eb=document.getElementById('eyebtn'),pi=document.getElementById('pwdinp'),ei=document.getElementById('eyeico');
-  if(eb)eb.addEventListener('click',()=>{pi.type=pi.type==='password'?'text':'password';ei.className=pi.type==='password'?'fas fa-eye':'fas fa-eye-slash';});
+// Toggle password visibility
+const eb=document.getElementById('eyebtn'),pi=document.getElementById('pwdinp'),ei=document.getElementById('eyeico');
+if(eb)eb.addEventListener('click',()=>{
+  pi.type=pi.type==='password'?'text':'password';
+  ei.className=pi.type==='password'?'fas fa-eye':'fas fa-eye-slash';
+});
+
+// Use a suggested username
+function useSuggestion(name){
+  const inp=document.getElementById('unameInput');
+  if(inp){inp.value=name;inp.focus();checkAvailability(name);}
+}
+
+// Live username availability check (register only)
+const unameInp = document.getElementById('unameInput');
+const feedback = document.getElementById('un-feedback');
+let checkTimer;
+if(unameInp && feedback){
+  unameInp.addEventListener('input', ()=>{
+    clearTimeout(checkTimer);
+    const v=unameInp.value.trim();
+    if(v.length<3){feedback.innerHTML='';return;}
+    checkTimer=setTimeout(()=>checkAvailability(v),400);
+  });
+}
+
+async function checkAvailability(name){
+  if(!feedback)return;
+  try{
+    const r=await fetch('/auth/check-username?username='+encodeURIComponent(name));
+    const d=await r.json();
+    if(d.available){
+      feedback.innerHTML='<span class="avail"><i class="fas fa-check-circle"></i> Available</span>';
+    } else {
+      let html='<span class="taken"><i class="fas fa-times-circle"></i> Taken</span>';
+      if(d.suggestions&&d.suggestions.length){
+        html+='<div class="sug-inline">Try: '+d.suggestions.map(s=>`<button type="button" onclick="useSuggestion('${s}')">${s}</button>`).join('')+'</div>';
+      }
+      feedback.innerHTML=html;
+    }
+  }catch(e){}
+}
 </script>
 <%- include('partials/footer') %>

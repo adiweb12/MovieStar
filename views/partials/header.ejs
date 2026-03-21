@@ -26,21 +26,25 @@
         <input type="text" id="searchInput" placeholder="Search movies…" autocomplete="off"/>
         <div id="searchDrop" class="sdrop"></div>
       </div>
-      <% if (typeof user !== 'undefined' && user) { %>
+      <% if(typeof user !== 'undefined' && user){ %>
         <div class="upill">
-          <div class="uav"><%= user.username.charAt(0).toUpperCase() %></div>
-          <span><%= user.username %></span>
-          <% if (user.isVerified) { %><i class="fas fa-badge-check vtick" title="Verified"></i><% } %>
-          <% if (user.isAdmin) { %><a href="/admin" class="admin-link" title="Admin"><i class="fas fa-shield-halved"></i></a><% } %>
+          <a href="/profile/<%= user.username %>" class="upill-link">
+            <div class="uav"><%= user.username.charAt(0).toUpperCase() %></div>
+            <span><%= user.username %></span>
+            <% if(user.isVerified){ %><i class="fas fa-circle-check vtick"></i><% } %>
+          </a>
+          <% if(user.isAdmin){ %>
+            <a href="/admin" class="admin-link" title="Admin Panel"><i class="fas fa-shield-halved"></i></a>
+          <% } %>
           <form action="/auth/logout" method="POST" style="margin:0">
             <button class="lo-btn" title="Logout"><i class="fas fa-sign-out-alt"></i></button>
           </form>
         </div>
-      <% } else { %>
+      <% }else{ %>
         <a href="/auth/login"    class="btn btn-ghost">Login</a>
         <a href="/auth/register" class="btn btn-red">Sign Up</a>
       <% } %>
-      <button class="hburg" id="hburg"><span></span><span></span><span></span></button>
+      <button class="hburg" id="hburg" aria-label="Menu"><span></span><span></span><span></span></button>
     </div>
   </div>
 </nav>
@@ -50,10 +54,11 @@
   <a href="/?filter=tamil">Tamil</a>
   <a href="/?filter=telugu">Telugu</a>
   <a href="/?filter=kannada">Kannada</a>
-  <% if (typeof user !== 'undefined' && user) { %>
-    <% if (user.isAdmin) { %><a href="/admin"><i class="fas fa-shield-halved"></i> Admin Panel</a><% } %>
+  <% if(typeof user !== 'undefined' && user){ %>
+    <a href="/profile/<%= user.username %>"><i class="fas fa-user"></i> My Profile</a>
+    <% if(user.isAdmin){ %><a href="/admin"><i class="fas fa-shield-halved"></i> Admin</a><% } %>
     <form action="/auth/logout" method="POST"><button type="submit">Logout</button></form>
-  <% } else { %>
+  <% }else{ %>
     <a href="/auth/login">Login</a>
     <a href="/auth/register">Sign Up</a>
   <% } %>

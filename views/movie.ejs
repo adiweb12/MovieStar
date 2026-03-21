@@ -94,7 +94,9 @@
                     <div class="rc-av"><%=r.userId&&r.userId.username?r.userId.username.charAt(0).toUpperCase():'?'%></div>
                     <div>
                       <div class="rc-name">
+                      <a href="/profile/<%=r.userId&&r.userId.username?r.userId.username:'#'%>" class="rc-name-link">
                         <%=r.userId&&r.userId.username?r.userId.username:'Unknown'%>
+                      </a>
                         <%if(r.userId&&r.userId.isVerified){%><i class="fas fa-circle-check vtick" title="Verified"></i><%}%>
                         <%if(r.userId&&r.userId.isAdmin){%><span class="admin-tag">Admin</span><%}%>
                       </div>
