@@ -1,0 +1,162 @@
+<%- include('partials/header') %>
+
+<div class="detail-page">
+
+  <!-- ── Backdrop ── -->
+  <div class="backdrop" style="background-image:url('<%= movie.image %>')">
+    <div class="backdrop-fade"></div>
+  </div>
+
+  <!-- ── Movie Info ── -->
+  <div class="detail-hero">
+    <div class="detail-poster-wrap">
+      <img src="<%= movie.image %>" alt="<%= movie.title %>" class="detail-poster"
+           onerror="this.src='/images/placeholder.svg'" />
+      <% if (movie.type === 'upcoming') { %>
+        <span class="badge badge-purple badge-lg">Coming Soon</span>
+      <% } else if (movie.type === 'trending') { %>
+        <span class="badge badge-red badge-lg">🔥 Trending</span>
+      <% } %>
+    </div>
+
+    <div class="detail-info">
+      <h1><%= movie.title %></h1>
+
+      <div class="detail-meta">
+        <% if (movie.releaseDate) { %>
+          <span><i class="fas fa-calendar-alt"></i>
+            <%= new Date(movie.releaseDate).toLocaleDateString('en-IN',{year:'numeric',month:'long',day:'numeric'}) %>
+          </span>
+        <% } %>
+        <% if (movie.duration) { %>
+          <span><i class="fas fa-clock"></i> <%= Math.floor(movie.duration/60) %>h <%= movie.duration%60 %>m</span>
+        <% } %>
+        <span><i class="fas fa-globe"></i> <%= movie.language %></span>
+      </div>
+
+      <% if (movie.genre && movie.genre.length) { %>
+        <div class="tags">
+          <% movie.genre.forEach(g => { %><span class="tag"><%= g %></span><% }) %>
+        </div>
+      <% } %>
+
+      <% if (movie.averageRating > 0) { %>
+        <div class="star-row">
+          <% for(let i=1;i<=5;i++){ %><i class="fas fa-star <%= i<=Math.round(movie.averageRating)?'s-on':'s-off' %>"></i><% } %>
+          <strong class="r-num"><%= movie.averageRating %></strong>
+          <span class="r-count">(<%= movie.reviewCount %> review<%= movie.reviewCount!==1?'s':'' %>)</span>
+        </div>
+      <% } else { %>
+        <div class="star-row dim"><i class="fas fa-star"></i> No ratings yet — be the first!</div>
+      <% } %>
+
+      <p class="detail-desc"><%= movie.description %></p>
+
+      <% if (movie.director) { %>
+        <p class="crew"><strong>Director:</strong> <%= movie.director %></p>
+      <% } %>
+      <% if (movie.cast && movie.cast.length) { %>
+        <p class="crew"><strong>Cast:</strong> <%= movie.cast.join(', ') %></p>
+      <% } %>
+    </div>
+  </div>
+
+  <!-- ── Review Panel ── -->
+  <div class="review-section">
+    <div class="review-grid">
+
+      <!-- Write a Review -->
+      <div class="review-box" id="reviewBox">
+        <h2>Write a Review</h2>
+
+        <% if (!user) { %>
+          <div class="auth-nudge">
+            <div class="lock-icon"><i class="fas fa-lock"></i></div>
+            <p>Login to share your rating and review.</p>
+            <a href="/auth/login?redirect=/movie/<%= movie._id %>"    class="btn btn-red btn-full">Login</a>
+            <a href="/auth/register?redirect=/movie/<%= movie._id %>" class="btn btn-ghost btn-full" style="margin-top:10px">Create Account</a>
+          </div>
+
+        <% } else if (userReview) { %>
+          <div class="done-box">
+            <i class="fas fa-check-circle" style="color:var(--green);font-size:2rem"></i>
+            <p>You already reviewed this movie.</p>
+            <div class="done-stars">
+              <% for(let i=1;i<=5;i++){ %><i class="fas fa-star <%= i<=userReview.rating?'s-on':'s-off' %>"></i><% } %>
+            </div>
+            <blockquote>"<%= userReview.comment %>"</blockquote>
+          </div>
+
+        <% } else { %>
+          <div id="rv-success" class="rv-alert rv-ok" style="display:none"><i class="fas fa-check-circle"></i> Review submitted!</div>
+          <div id="rv-error"   class="rv-alert rv-err" style="display:none"></div>
+
+          <form id="reviewForm" data-id="<%= movie._id %>">
+            <div class="fg">
+              <label>Your Rating</label>
+              <div class="star-picker" id="starPicker">
+                <i class="fas fa-star sp" data-v="1"></i>
+                <i class="fas fa-star sp" data-v="2"></i>
+                <i class="fas fa-star sp" data-v="3"></i>
+                <i class="fas fa-star sp" data-v="4"></i>
+                <i class="fas fa-star sp" data-v="5"></i>
+              </div>
+              <input type="hidden" id="ratingVal" />
+              <small id="ratingLabel" class="hint">Click to rate</small>
+            </div>
+            <div class="fg">
+              <label for="commentBox">Your Review</label>
+              <textarea id="commentBox" rows="5" maxlength="1000" placeholder="Share your thoughts about the movie…"></textarea>
+              <small class="hint tar"><span id="cc">0</span>/1000</small>
+            </div>
+            <button type="submit" class="btn btn-red btn-full" id="submitBtn">
+              <span id="btnLabel"><i class="fas fa-paper-plane"></i> Submit Review</span>
+              <span id="btnSpinner" style="display:none"><i class="fas fa-spinner fa-spin"></i> Submitting…</span>
+            </button>
+          </form>
+        <% } %>
+      </div>
+
+      <!-- Reviews List -->
+      <div class="reviews-list-wrap">
+        <h2>Reviews <span class="count-badge" id="rcount"><%= reviews.length %></span></h2>
+
+        <% if (!reviews.length) { %>
+          <div class="empty-reviews">
+            <i class="fas fa-comments"></i>
+            <p>No reviews yet. Be the first!</p>
+          </div>
+        <% } else { %>
+          <div id="reviewsList">
+            <% reviews.forEach(r => { %>
+              <div class="review-card">
+                <div class="rc-head">
+                  <div class="rc-left">
+                    <div class="rc-avatar"><%= r.userId.username.charAt(0).toUpperCase() %></div>
+                    <div>
+                      <strong><%= r.userId.username %></strong>
+                      <small><%= new Date(r.createdAt).toLocaleDateString('en-IN',{year:'numeric',month:'short',day:'numeric'}) %></small>
+                    </div>
+                  </div>
+                  <div class="rc-stars">
+                    <% for(let i=1;i<=5;i++){ %><i class="fas fa-star <%= i<=r.rating?'s-on':'s-off' %>"></i><% } %>
+                    <span class="rbadge"><%= r.rating %>/5</span>
+                  </div>
+                </div>
+                <p class="rc-comment"><%= r.comment %></p>
+              </div>
+            <% }) %>
+          </div>
+        <% } %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  window._MOVIE_ID   = '<%= movie._id %>';
+  window._LOGGED_IN  = <%= user ? 'true' : 'false' %>;
+  window._LOGIN_URL  = '/auth/login?redirect=/movie/<%= movie._id %>';
+</script>
+
+<%- include('partials/footer') %>

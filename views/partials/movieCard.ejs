@@ -1,0 +1,25 @@
+<a href="/movie/<%= movie._id %>" class="movie-card">
+  <div class="card-img">
+    <img src="<%= movie.image %>" alt="<%= movie.title %>" loading="lazy"
+         onerror="this.src='/images/placeholder.svg'" />
+    <div class="card-shine"></div>
+    <div class="card-overlay">
+      <% if (movie.type === 'upcoming') { %>
+        <span class="badge badge-purple">Coming Soon</span>
+      <% } else if (movie.type === 'trending') { %>
+        <span class="badge badge-red">🔥 Trending</span>
+      <% } %>
+      <div class="card-play"><i class="fas fa-play"></i></div>
+      <% if (movie.averageRating > 0) { %>
+        <div class="card-rating"><i class="fas fa-star"></i> <%= movie.averageRating %></div>
+      <% } %>
+    </div>
+  </div>
+  <div class="card-body">
+    <p class="card-title"><%= movie.title %></p>
+    <div class="card-meta">
+      <span class="lang-tag"><%= movie.language %></span>
+      <% if (movie.releaseDate) { %><span><%= new Date(movie.releaseDate).getFullYear() %></span><% } %>
+    </div>
+  </div>
+</a>

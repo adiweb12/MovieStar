@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title><%= title %></title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+
+<nav class="navbar" id="navbar">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">🎬 <span>MovieStar</span></a>
+
+    <div class="nav-links">
+      <a href="/" class="nav-link">Home</a>
+      <a href="/?filter=malayalam" class="nav-link">Malayalam</a>
+      <a href="/?filter=tamil"     class="nav-link">Tamil</a>
+      <a href="/?filter=telugu"    class="nav-link">Telugu</a>
+      <a href="/?filter=kannada"   class="nav-link">Kannada</a>
+    </div>
+
+    <div class="nav-right">
+      <div class="search-wrap">
+        <i class="fas fa-search search-icon"></i>
+        <input type="text" id="searchInput" placeholder="Search movies…" autocomplete="off" />
+        <div id="searchDropdown" class="search-dropdown"></div>
+      </div>
+
+      <% if (typeof user !== 'undefined' && user) { %>
+        <div class="user-pill">
+          <div class="avatar-sm"><%= user.username.charAt(0).toUpperCase() %></div>
+          <span><%= user.username %></span>
+          <form action="/auth/logout" method="POST" style="margin:0">
+            <button class="logout-icon" title="Logout"><i class="fas fa-sign-out-alt"></i></button>
+          </form>
+        </div>
+      <% } else { %>
+        <a href="/auth/login"    class="btn btn-ghost">Login</a>
+        <a href="/auth/register" class="btn btn-red">Sign Up</a>
+      <% } %>
+
+      <button class="hamburger" id="hamburger" aria-label="Menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<div class="mobile-menu" id="mobileMenu">
+  <a href="/">Home</a>
+  <a href="/?filter=malayalam">Malayalam</a>
+  <a href="/?filter=tamil">Tamil</a>
+  <a href="/?filter=telugu">Telugu</a>
+  <a href="/?filter=kannada">Kannada</a>
+  <% if (typeof user !== 'undefined' && user) { %>
+    <form action="/auth/logout" method="POST"><button type="submit">Logout</button></form>
+  <% } else { %>
+    <a href="/auth/login">Login</a>
+    <a href="/auth/register">Sign Up</a>
+  <% } %>
+</div>
+
+<main>
