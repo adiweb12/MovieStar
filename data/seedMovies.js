@@ -14,7 +14,9 @@ function parseDate(str) {
 // Placeholder image helper (no broken TMDB paths)
 function img(text) {
   const encoded = encodeURIComponent(text);
-  return `https://via.placeholder.com/300x450/1a1a2e/e94560?text=${encoded}`;
+  // This pulls a random high-quality photo related to the movie title
+  // 300x450 is the standard movie poster aspect ratio
+  return `https://source.unsplash.com/300x450/?movie,${encoded}`;
 }
 
 const movies = [
