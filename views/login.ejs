@@ -1,84 +1,47 @@
 <%- include('partials/header') %>
-
 <div class="auth-wrap">
   <div class="auth-card">
-
     <div class="auth-logo">🎬 <span>MovieStar</span></div>
-
-    <% if (mode === 'register') { %>
-      <h1>Create Account</h1>
-      <p class="auth-sub">Join to review your favourite films</p>
-    <% } else { %>
-      <h1>Welcome Back</h1>
-      <p class="auth-sub">Sign in to continue</p>
-    <% } %>
-
-    <% if (error) { %>
-      <div class="alert-err"><i class="fas fa-exclamation-circle"></i> <%= error %></div>
-    <% } %>
-
+    <h1><%= mode==='register'?'Create Account':'Welcome Back' %></h1>
+    <p class="auth-sub"><%= mode==='register'?'Join to review movies':'Sign in to continue' %></p>
+    <% if(error){%><div class="alert-err"><i class="fas fa-exclamation-circle"></i> <%=error%></div><%}%>
     <div class="auth-tabs">
-      <a href="/auth/login?redirect=<%= redirect %>"    class="atab <%= mode==='login'    ? 'active' : '' %>">Login</a>
-      <a href="/auth/register?redirect=<%= redirect %>" class="atab <%= mode==='register' ? 'active' : '' %>">Register</a>
+      <a href="/auth/login?redirect=<%=redirect%>"    class="atab <%=mode==='login'   ?'active':''%>">Login</a>
+      <a href="/auth/register?redirect=<%=redirect%>" class="atab <%=mode==='register'?'active':''%>">Register</a>
     </div>
-
-    <form action="/auth/<%= mode %>" method="POST" class="aform">
-      <input type="hidden" name="redirect" value="<%= redirect %>" />
-
+    <form action="/auth/<%=mode%>" method="POST" class="aform">
+      <input type="hidden" name="redirect" value="<%=redirect%>"/>
       <div class="fg">
         <label>Username</label>
-        <div class="iw">
-          <i class="fas fa-user"></i>
+        <div class="iw"><i class="fas fa-user"></i>
           <input type="text" name="username" placeholder="Your username" required
-            autocomplete="username"
-            <% if (mode==='register') { %>minlength="3" maxlength="20" pattern="[a-zA-Z0-9_]+"<% } %> />
+            autocomplete="username" <%=mode==='register'?'minlength="3" maxlength="20" pattern="[a-zA-Z0-9_]+"':''%>/>
         </div>
-        <% if (mode==='register') { %>
-          <small class="hint">3–20 chars · letters, numbers, underscores</small>
-        <% } %>
+        <%if(mode==='register'){%><small class="hint">3–20 chars · letters, numbers, underscores</small><%}%>
       </div>
-
       <div class="fg">
         <label>Password</label>
-        <div class="iw">
-          <i class="fas fa-lock"></i>
-          <input type="password" id="pwdInput" name="password" placeholder="Your password" required
-            autocomplete="<%= mode==='register' ? 'new-password' : 'current-password' %>"
-            <% if (mode==='register') { %>minlength="6"<% } %> />
-          <button type="button" id="eyeBtn" class="eye-btn"><i class="fas fa-eye" id="eyeIcon"></i></button>
+        <div class="iw"><i class="fas fa-lock"></i>
+          <input type="password" id="pwdinp" name="password" placeholder="Your password" required
+            autocomplete="<%=mode==='register'?'new-password':'current-password'%>"
+            <%=mode==='register'?'minlength="6"':''%>/>
+          <button type="button" id="eyebtn" class="eye-btn"><i class="fas fa-eye" id="eyeico"></i></button>
         </div>
-        <% if (mode==='register') { %>
-          <small class="hint">Minimum 6 characters</small>
-        <% } %>
+        <%if(mode==='register'){%><small class="hint">Minimum 6 characters</small><%}%>
       </div>
-
       <button type="submit" class="btn btn-red btn-full btn-lg">
-        <% if (mode==='register') { %>
-          <i class="fas fa-user-plus"></i> Create Account
-        <% } else { %>
-          <i class="fas fa-sign-in-alt"></i> Login
-        <% } %>
+        <%if(mode==='register'){%><i class="fas fa-user-plus"></i> Create Account
+        <%}else{%><i class="fas fa-sign-in-alt"></i> Login<%}%>
       </button>
     </form>
-
     <p class="auth-switch">
-      <% if (mode==='register') { %>
-        Already have an account? <a href="/auth/login?redirect=<%= redirect %>">Login</a>
-      <% } else { %>
-        New here? <a href="/auth/register?redirect=<%= redirect %>">Create Account</a>
-      <% } %>
+      <%if(mode==='register'){%>Already have an account? <a href="/auth/login?redirect=<%=redirect%>">Login</a>
+      <%}else{%>New here? <a href="/auth/register?redirect=<%=redirect%>">Sign Up</a><%}%>
     </p>
   </div>
 </div>
-
 <script>
-  const eye = document.getElementById('eyeBtn');
-  if (eye) eye.addEventListener('click', () => {
-    const p = document.getElementById('pwdInput');
-    const i = document.getElementById('eyeIcon');
-    p.type = p.type === 'password' ? 'text' : 'password';
-    i.className = p.type === 'password' ? 'fas fa-eye' : 'fas fa-eye-slash';
-  });
+  const eb=document.getElementById('eyebtn'),pi=document.getElementById('pwdinp'),ei=document.getElementById('eyeico');
+  if(eb)eb.addEventListener('click',()=>{pi.type=pi.type==='password'?'text':'password';ei.className=pi.type==='password'?'fas fa-eye':'fas fa-eye-slash';});
 </script>
-
 <%- include('partials/footer') %>

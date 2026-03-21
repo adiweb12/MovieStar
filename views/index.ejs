@@ -1,25 +1,31 @@
 <%- include('partials/header') %>
 
-<!-- ── Hero ── -->
+<% if (announcement) { %>
+<div class="announce-bar">
+  <i class="fas fa-bullhorn"></i>
+  <span><%= announcement.message %></span>
+  <button onclick="this.parentElement.style.display='none'" class="announce-close">&times;</button>
+</div>
+<% } %>
+
 <section class="hero">
   <div class="hero-glow"></div>
   <div class="hero-content">
-    <div class="hero-badge"><i class="fas fa-film"></i> South Indian Cinema Hub</div>
-    <h1>Discover.<br /><span>Rate.</span> Review.</h1>
-    <p>Explore the best of Malayalam, Tamil, Telugu &amp; Kannada films — rated by fans like you.</p>
+    <div class="hero-pill"><i class="fas fa-film"></i> South Indian Cinema Hub</div>
+    <h1>Discover.<br/><span>Rate.</span> Review.</h1>
+    <p>Explore Malayalam, Tamil, Telugu & Kannada films — rated by fans.</p>
     <div class="hero-btns">
-      <a href="#trending"   class="btn btn-red btn-lg"><i class="fas fa-fire"></i> Trending Now</a>
-      <a href="#upcoming"   class="btn btn-ghost btn-lg"><i class="fas fa-calendar"></i> Coming Soon</a>
+      <a href="#trending"  class="btn btn-red btn-lg"><i class="fas fa-fire"></i> Trending</a>
+      <a href="#upcoming"  class="btn btn-ghost btn-lg"><i class="fas fa-calendar"></i> Coming Soon</a>
     </div>
   </div>
   <div class="hero-stats">
-    <div class="stat"><span id="movieCountStat">50</span><small>Movies</small></div>
-    <div class="stat"><span>5</span><small>Languages</small></div>
-    <div class="stat"><span>★</span><small>Fan Reviews</small></div>
+    <div class="hstat"><span>50+</span><small>Movies</small></div>
+    <div class="hstat"><span>5</span><small>Languages</small></div>
+    <div class="hstat"><span>★</span><small>Fan Reviews</small></div>
   </div>
 </section>
 
-<!-- ── Filter Bar ── -->
 <div class="filter-bar" id="filterBar">
   <div class="filter-inner">
     <button class="pill active" data-filter="all">All</button>
@@ -33,82 +39,26 @@
   </div>
 </div>
 
-<!-- ── Trending ── -->
-<% if (trending.length) { %>
-<section class="shelf" id="trending" data-type="trending">
-  <div class="shelf-header">
-    <h2><span class="icon">🔥</span> Trending Now</h2>
+<% const shelf = (icon, label, items, id='') => { %>
+<% if (items.length) { %>
+<section class="shelf" <%= id ? `id="${id}"` : '' %>>
+  <div class="shelf-hd">
+    <h2><span><%= icon %></span> <%= label %></h2>
     <a class="see-all" href="#">See all <i class="fas fa-chevron-right"></i></a>
   </div>
   <div class="shelf-row">
-    <% trending.forEach(m => { %><%- include('partials/movieCard', { movie: m }) %><% }) %>
+    <% items.forEach(m => { %><%- include('partials/movieCard',{movie:m}) %><% }) %>
   </div>
 </section>
+<% } %>
 <% } %>
 
-<!-- ── Malayalam ── -->
-<% if (malayalam.length) { %>
-<section class="shelf" id="malayalam-section" data-lang="malayalam">
-  <div class="shelf-header">
-    <h2><span class="icon">🇮🇳</span> Malayalam</h2>
-    <a class="see-all" href="#">See all <i class="fas fa-chevron-right"></i></a>
-  </div>
-  <div class="shelf-row">
-    <% malayalam.forEach(m => { %><%- include('partials/movieCard', { movie: m }) %><% }) %>
-  </div>
-</section>
-<% } %>
-
-<!-- ── Tamil ── -->
-<% if (tamil.length) { %>
-<section class="shelf" data-lang="tamil">
-  <div class="shelf-header">
-    <h2><span class="icon">🎵</span> Tamil</h2>
-    <a class="see-all" href="#">See all <i class="fas fa-chevron-right"></i></a>
-  </div>
-  <div class="shelf-row">
-    <% tamil.forEach(m => { %><%- include('partials/movieCard', { movie: m }) %><% }) %>
-  </div>
-</section>
-<% } %>
-
-<!-- ── Telugu ── -->
-<% if (telugu.length) { %>
-<section class="shelf" data-lang="telugu">
-  <div class="shelf-header">
-    <h2><span class="icon">🎬</span> Telugu</h2>
-    <a class="see-all" href="#">See all <i class="fas fa-chevron-right"></i></a>
-  </div>
-  <div class="shelf-row">
-    <% telugu.forEach(m => { %><%- include('partials/movieCard', { movie: m }) %><% }) %>
-  </div>
-</section>
-<% } %>
-
-<!-- ── Recently Released ── -->
-<% if (recentlyReleased.length) { %>
-<section class="shelf" data-type="released">
-  <div class="shelf-header">
-    <h2><span class="icon">🎞️</span> Recently Released</h2>
-    <a class="see-all" href="#">See all <i class="fas fa-chevron-right"></i></a>
-  </div>
-  <div class="shelf-row">
-    <% recentlyReleased.forEach(m => { %><%- include('partials/movieCard', { movie: m }) %><% }) %>
-  </div>
-</section>
-<% } %>
-
-<!-- ── Upcoming ── -->
-<% if (upcoming.length) { %>
-<section class="shelf" id="upcoming" data-type="upcoming">
-  <div class="shelf-header">
-    <h2><span class="icon">🔮</span> Coming Soon</h2>
-    <a class="see-all" href="#">See all <i class="fas fa-chevron-right"></i></a>
-  </div>
-  <div class="shelf-row">
-    <% upcoming.forEach(m => { %><%- include('partials/movieCard', { movie: m }) %><% }) %>
-  </div>
-</section>
-<% } %>
+<%- shelf('🔥','Trending Now',    trending,          'trending') %>
+<%- shelf('🇮🇳','Malayalam',      malayalam,          'malayalam-sec') %>
+<%- shelf('🎵','Tamil',           tamil,              'tamil-sec') %>
+<%- shelf('🎬','Telugu',          telugu,             'telugu-sec') %>
+<%- shelf('🦁','Kannada',         kannada,            'kannada-sec') %>
+<%- shelf('🎞️','Recently Released',recentlyReleased,  '') %>
+<%- shelf('🔮','Coming Soon',     upcoming,          'upcoming') %>
 
 <%- include('partials/footer') %>

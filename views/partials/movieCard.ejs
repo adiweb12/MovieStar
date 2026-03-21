@@ -1,24 +1,21 @@
-<a href="/movie/<%= movie._id %>" class="movie-card">
-  <div class="card-img">
+<a href="/movie/<%= movie._id %>" class="mcard">
+  <div class="mcard-img">
     <img src="<%= movie.image %>" alt="<%= movie.title %>" loading="lazy"
-         onerror="this.src='/images/placeholder.svg'" />
-    <div class="card-shine"></div>
-    <div class="card-overlay">
-      <% if (movie.type === 'upcoming') { %>
-        <span class="badge badge-purple">Coming Soon</span>
-      <% } else if (movie.type === 'trending') { %>
-        <span class="badge badge-red">🔥 Trending</span>
-      <% } %>
-      <div class="card-play"><i class="fas fa-play"></i></div>
-      <% if (movie.averageRating > 0) { %>
-        <div class="card-rating"><i class="fas fa-star"></i> <%= movie.averageRating %></div>
+         onerror="this.onerror=null;this.src='/images/placeholder.svg'"/>
+    <div class="mcard-shine"></div>
+    <div class="mcard-ov">
+      <% if (movie.type==='upcoming')  { %><span class="badge bpurple">Coming Soon</span><% } %>
+      <% if (movie.type==='trending')  { %><span class="badge bred">🔥 Trending</span><% } %>
+      <div class="play-btn"><i class="fas fa-play"></i></div>
+      <% if (movie.averageRating>0) { %>
+        <div class="crating"><i class="fas fa-star"></i> <%= movie.averageRating %></div>
       <% } %>
     </div>
   </div>
-  <div class="card-body">
-    <p class="card-title"><%= movie.title %></p>
-    <div class="card-meta">
-      <span class="lang-tag"><%= movie.language %></span>
+  <div class="mcard-body">
+    <p class="mcard-title"><%= movie.title %></p>
+    <div class="mcard-meta">
+      <span class="ltag"><%= movie.language %></span>
       <% if (movie.releaseDate) { %><span><%= new Date(movie.releaseDate).getFullYear() %></span><% } %>
     </div>
   </div>

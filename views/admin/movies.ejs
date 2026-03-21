@@ -1,0 +1,88 @@
+<%- include('../partials/header') %>
+<div class="admin-wrap">
+  <%- include('_sidebar') %>
+  <div class="admin-main">
+    <div class="admin-topbar">
+      <h1><i class="fas fa-film"></i> Manage Movies</h1>
+      <%if(req.query.success){%><div class="flash-ok"><%=req.query.success.replace(/\+/g,' ')%></div><%}%>
+      <%if(req.query.error){%><div class="flash-err"><%=req.query.error.replace(/\+/g,' ')%></div><%}%>
+    </div>
+
+    <!-- Add Movie Form -->
+    <div class="admin-section">
+      <h2><i class="fas fa-plus-circle"></i> Add New Movie</h2>
+      <form action="/admin/movies/add" method="POST" enctype="multipart/form-data" class="add-movie-form">
+        <div class="form-grid">
+          <div class="fg"><label>Title *</label><input type="text" name="title" required placeholder="Movie title"/></div>
+          <div class="fg"><label>Language *</label>
+            <select name="language" required>
+              <option value="">Select…</option>
+              <option>Malayalam</option><option>Tamil</option><option>Telugu</option>
+              <option>Kannada</option><option>Hindi</option><option>Other</option>
+            </select>
+          </div>
+          <div class="fg"><label>Type</label>
+            <select name="type">
+              <option value="released">Released</option>
+              <option value="trending">Trending</option>
+              <option value="upcoming">Upcoming</option>
+            </select>
+          </div>
+          <div class="fg"><label>Release Date</label><input type="date" name="releaseDate"/></div>
+          <div class="fg"><label>Duration (min)</label><input type="number" name="duration" min="1" placeholder="e.g. 150"/></div>
+          <div class="fg"><label>Director</label><input type="text" name="director" placeholder="Director name"/></div>
+          <div class="fg"><label>Cast <small>(comma separated)</small></label><input type="text" name="cast" placeholder="Actor 1, Actor 2"/></div>
+          <div class="fg"><label>Genre <small>(comma separated)</small></label><input type="text" name="genre" placeholder="Action, Drama"/></div>
+          <div class="fg fg-full"><label>Description *</label><textarea name="description" rows="4" required placeholder="Movie description…"></textarea></div>
+          <div class="fg fg-full">
+            <label>Poster Image * <small>(JPG/PNG/WEBP, max 5MB)</small></label>
+            <div class="file-upload-wrap">
+              <label for="imgInput" class="file-upload-label"><i class="fas fa-cloud-upload-alt"></i> Choose Image</label>
+              <input type="file" id="imgInput" name="image" accept="image/jpeg,image/png,image/webp" required onchange="previewImg(this)"/>
+              <span id="fname" class="fname">No file chosen</span>
+            </div>
+            <div id="imgPreview" class="img-preview" style="display:none">
+              <img id="prevImg" src="" alt="Preview"/>
+            </div>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-red btn-lg"><i class="fas fa-plus"></i> Add Movie</button>
+      </form>
+    </div>
+
+    <!-- Movies Table -->
+    <div class="admin-section">
+      <h2><i class="fas fa-list"></i> All Movies (<%=movies.length%>)</h2>
+      <div class="table-wrap">
+        <table class="atable">
+          <thead><tr><th>Poster</th><th>Title</th><th>Language</th><th>Type</th><th>Rating</th><th>Added</th><th>Action</th></tr></thead>
+          <tbody>
+            <%movies.forEach(m=>{%>
+              <tr>
+                <td><img src="<%=m.image%>" alt="" class="thumb" onerror="this.src='/images/placeholder.svg'"/></td>
+                <td><a href="/movie/<%=m._id%>" class="tlink"><%=m.title%></a></td>
+                <td><%=m.language%></td>
+                <td><span class="tbadge tbadge-<%=m.type%>"><%=m.type%></span></td>
+                <td><%=m.averageRating>0?`★ ${m.averageRating}`:'–'%></td>
+                <td><small><%=new Date(m.createdAt).toLocaleDateString()%></small></td>
+                <td>
+                  <form action="/admin/movies/delete/<%=m._id%>" method="POST" onsubmit="return confirm('Delete <%=m.title.replace(/'/g,"\\'")%>?')">
+                    <button class="btn-sm btn-danger"><i class="fas fa-trash"></i></button>
+                  </form>
+                </td>
+              </tr>
+            <%})%>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+function previewImg(input){
+  const f=input.files[0];
+  document.getElementById('fname').textContent=f?f.name:'No file chosen';
+  if(f){const r=new FileReader();r.onload=e=>{document.getElementById('prevImg').src=e.target.result;document.getElementById('imgPreview').style.display='block';};r.readAsDataURL(f);}
+}
+</script>
+<%- include('../partials/footer') %>

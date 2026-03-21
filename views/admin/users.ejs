@@ -1,0 +1,51 @@
+<%- include('../partials/header') %>
+<div class="admin-wrap">
+  <%- include('_sidebar') %>
+  <div class="admin-main">
+    <div class="admin-topbar">
+      <h1><i class="fas fa-users"></i> Manage Users</h1>
+      <%if(req.query.success){%><div class="flash-ok"><%=req.query.success.replace(/\+/g,' ')%></div><%}%>
+    </div>
+    <div class="admin-section">
+      <h2><i class="fas fa-search"></i> Search by Username or Unique ID</h2>
+      <form action="/admin/users/search" method="POST" class="search-form">
+        <div class="search-row">
+          <input type="text" name="q" value="<%=query||''%>" placeholder="Search username or USR-XXXX…" required/>
+          <button type="submit" class="btn btn-red"><i class="fas fa-search"></i> Search</button>
+          <a href="/admin/users" class="btn btn-ghost">Clear</a>
+        </div>
+      </form>
+    </div>
+    <div class="admin-section">
+      <h2><i class="fas fa-list"></i> Users (<%=users.length%>) <%if(query){%>— results for "<em><%=query%></em>"<%}%></h2>
+      <div class="table-wrap">
+        <table class="atable">
+          <thead><tr><th>Username</th><th>Unique ID</th><th>Admin</th><th>Verified</th><th>Followers</th><th>Joined</th><th>Hashed Password</th><th>Action</th></tr></thead>
+          <tbody>
+            <%users.forEach(u=>{%>
+              <tr>
+                <td><strong><%=u.username%></strong></td>
+                <td><code class="uid"><%=u.uniqueId||'–'%></code></td>
+                <td><%=u.isAdmin?'<span class="tbadge tbadge-trending">Yes</span>':'No'%></td>
+                <td><%=u.isVerified?'<span class="tbadge tbadge-green">✓ Yes</span>':'No'%></td>
+                <td><%=u.followers?u.followers.length:0%></td>
+                <td><small><%=new Date(u.createdAt).toLocaleDateString()%></small></td>
+                <td><code class="hash"><%=u.password?u.password.substring(0,30)+'…':'–'%></code></td>
+                <td>
+                  <%if(!u.isAdmin){%>
+                  <form action="/admin/users/verify/<%=u._id%>" method="POST" style="display:inline">
+                    <button class="btn-sm <%=u.isVerified?'btn-danger':'btn-ok'%>">
+                      <%=u.isVerified?'Unverify':'Verify'%>
+                    </button>
+                  </form>
+                  <%}else{%><span class="dim">Admin</span><%}%>
+                </td>
+              </tr>
+            <%})%>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+<%- include('../partials/footer') %>

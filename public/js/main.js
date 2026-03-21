@@ -1,63 +1,63 @@
 /* ─────────────────────────────────────────────────
-   MovieStar v2 · Frontend JS
+   MovieStar v3 · Frontend JS
 ───────────────────────────────────────────────── */
 
-// ── Navbar: solid on scroll ──────────────────────
+// ── Navbar solid on scroll ───────────────────────
 const navbar = document.getElementById('navbar');
 if (navbar) window.addEventListener('scroll', () =>
   navbar.classList.toggle('solid', window.scrollY > 60));
 
 // ── Mobile menu ──────────────────────────────────
-const hamburger   = document.getElementById('hamburger');
-const mobileMenu  = document.getElementById('mobileMenu');
-if (hamburger && mobileMenu) {
-  hamburger.addEventListener('click', () => {
-    const open = mobileMenu.style.display === 'flex';
-    mobileMenu.style.display = open ? 'none' : 'flex';
+const hburg = document.getElementById('hburg');
+const mmenu = document.getElementById('mmenu');
+if (hburg && mmenu) {
+  hburg.addEventListener('click', () => {
+    const open = mmenu.style.display === 'flex';
+    mmenu.style.display = open ? 'none' : 'flex';
+  });
+  document.addEventListener('click', e => {
+    if (!hburg.contains(e.target) && !mmenu.contains(e.target))
+      mmenu.style.display = 'none';
   });
 }
 
-// ── Live search ───────────────────────────────────
-const searchInput    = document.getElementById('searchInput');
-const searchDropdown = document.getElementById('searchDropdown');
-let   searchTimer;
-
-if (searchInput && searchDropdown) {
-  searchInput.addEventListener('input', () => {
-    clearTimeout(searchTimer);
-    const q = searchInput.value.trim();
-    if (q.length < 2) { hide(searchDropdown); searchDropdown.innerHTML = ''; return; }
-
-    searchTimer = setTimeout(async () => {
+// ── Live Search ───────────────────────────────────
+const si = document.getElementById('searchInput');
+const sd = document.getElementById('searchDrop');
+let stimer;
+if (si && sd) {
+  si.addEventListener('input', () => {
+    clearTimeout(stimer);
+    const q = si.value.trim();
+    if (q.length < 2) { sd.style.display = 'none'; sd.innerHTML = ''; return; }
+    stimer = setTimeout(async () => {
       try {
-        const res  = await fetch(`/api/movies?search=${encodeURIComponent(q)}&limit=7`);
-        const data = await res.json();
-        if (!data.data?.length) {
-          searchDropdown.innerHTML = '<div style="padding:13px 15px;color:var(--txt3);font-size:.83rem">No results found</div>';
+        const r = await fetch(`/api/movies?search=${encodeURIComponent(q)}&limit=7`);
+        const d = await r.json();
+        if (!d.data?.length) {
+          sd.innerHTML = '<div style="padding:13px 15px;color:var(--txt3);font-size:.83rem">No results</div>';
         } else {
-          searchDropdown.innerHTML = data.data.map(m => `
-            <a href="/movie/${m._id}" class="sr-item">
-              <img src="${m.image}" alt="" onerror="this.src='/images/placeholder.svg'" />
+          sd.innerHTML = d.data.map(m => `
+            <a href="/movie/${m._id}" class="sdi">
+              <img src="${m.image}" alt="" onerror="this.src='/images/placeholder.svg'"/>
               <div>
-                <div class="sr-name">${esc(m.title)}</div>
-                <div class="sr-meta">${esc(m.language)} · ${m.releaseDate ? new Date(m.releaseDate).getFullYear() : ''}</div>
+                <div class="sdn">${esc(m.title)}</div>
+                <div class="sdm">${esc(m.language)} · ${m.releaseDate ? new Date(m.releaseDate).getFullYear() : ''}</div>
               </div>
             </a>`).join('');
         }
-        show(searchDropdown);
+        sd.style.display = 'block';
       } catch { /* ignore */ }
     }, 280);
   });
-
   document.addEventListener('click', e => {
-    if (!searchInput.contains(e.target) && !searchDropdown.contains(e.target))
-      hide(searchDropdown);
+    if (!si.contains(e.target) && !sd.contains(e.target)) sd.style.display = 'none';
   });
 }
 
-// ── Filter pills (homepage) ───────────────────────
-const pills     = document.querySelectorAll('.pill');
-const shelves   = document.querySelectorAll('.shelf');
+// ── Filter Pills (homepage) ───────────────────────
+const pills   = document.querySelectorAll('.pill');
+const shelves = document.querySelectorAll('.shelf');
 
 pills.forEach(pill => {
   pill.addEventListener('click', () => {
@@ -67,96 +67,86 @@ pills.forEach(pill => {
 
     shelves.forEach(shelf => {
       if (f === 'all') { shelf.style.display = ''; return; }
-
-      const cards   = shelf.querySelectorAll('.movie-card');
-      let   visible = 0;
-
+      const cards = shelf.querySelectorAll('.mcard');
+      let   vis   = 0;
       cards.forEach(card => {
-        const lang      = card.querySelector('.lang-tag')?.textContent.toLowerCase() || '';
-        const isTrend   = card.querySelector('.badge-red');
-        const isUpcoming= card.querySelector('.badge-purple');
-
+        const lang    = (card.querySelector('.ltag')?.textContent || '').toLowerCase();
+        const isTrend = !!card.querySelector('.bred');
+        const isUp    = !!card.querySelector('.bpurple');
         let show = false;
-        if (f === 'trending')  show = !!isTrend;
-        else if (f === 'upcoming') show = !!isUpcoming;
-        else show = lang.includes(f);
-
+        if      (f === 'trending')  show = isTrend;
+        else if (f === 'upcoming')  show = isUp;
+        else                        show = lang.includes(f);
         card.style.display = show ? '' : 'none';
-        if (show) visible++;
+        if (show) vis++;
       });
-
-      shelf.style.display = visible === 0 ? 'none' : '';
+      shelf.style.display = vis === 0 ? 'none' : '';
     });
   });
 });
 
-// ── Handle URL ?filter= param on load ─────────────
-const urlFilter = new URLSearchParams(window.location.search).get('filter');
-if (urlFilter) {
-  const p = [...pills].find(p => p.dataset.filter === urlFilter);
+// Apply ?filter= from URL on page load
+const urlF = new URLSearchParams(window.location.search).get('filter');
+if (urlF) {
+  const p = [...pills].find(p => p.dataset.filter === urlF);
   if (p) p.click();
 }
 
-// ── Star picker ───────────────────────────────────
-const starPicker   = document.getElementById('starPicker');
-const ratingVal    = document.getElementById('ratingVal');
-const ratingLabel  = document.getElementById('ratingLabel');
-const LABELS       = ['','Poor','Fair','Good','Great','Excellent!'];
+// ── Star Picker ───────────────────────────────────
+const spWrap  = document.getElementById('sp');
+const rval    = document.getElementById('rval');
+const rlabel  = document.getElementById('rlabel');
+const LABELS  = ['', 'Poor', 'Fair', 'Good', 'Great', 'Excellent!'];
 
-if (starPicker) {
-  const stars = starPicker.querySelectorAll('.sp');
-  stars.forEach(star => {
-    star.addEventListener('mouseover', () => highlight(parseInt(star.dataset.v)));
-    star.addEventListener('click', () => {
-      const v = parseInt(star.dataset.v);
-      ratingVal.value = v;
-      if (ratingLabel) ratingLabel.textContent = `You rated: ${LABELS[v]}`;
-      highlight(v, true);
+if (spWrap) {
+  const stars = spWrap.querySelectorAll('.sp');
+  stars.forEach(s => {
+    s.addEventListener('mouseover', () => hlStars(parseInt(s.dataset.v)));
+    s.addEventListener('click', () => {
+      const v = parseInt(s.dataset.v);
+      rval.value = v;
+      if (rlabel) rlabel.textContent = `Rated: ${LABELS[v]}`;
+      hlStars(v, true);
     });
   });
-  starPicker.addEventListener('mouseleave', () => {
-    const cur = parseInt(ratingVal?.value || 0);
-    highlight(cur, !!cur);
+  spWrap.addEventListener('mouseleave', () => hlStars(parseInt(rval?.value || 0), !!rval?.value));
+}
+function hlStars(n, lock = false) {
+  document.querySelectorAll('#sp .sp').forEach((s, i) => {
+    s.classList.toggle('lit', i < n);
+    if (lock) s.style.color = i < n ? 'var(--gold)' : '';
   });
-
-  function highlight(n, lock = false) {
-    starPicker.querySelectorAll('.sp').forEach((s, i) => {
-      s.classList.toggle('lit', i < n);
-      if (lock) s.style.color = i < n ? 'var(--gold)' : '';
-    });
-  }
 }
 
 // ── Char counter ──────────────────────────────────
-const commentBox = document.getElementById('commentBox');
-const cc         = document.getElementById('cc');
-if (commentBox && cc) {
-  commentBox.addEventListener('input', () => {
-    const len = commentBox.value.length;
-    cc.textContent = len;
-    cc.style.color = len > 900 ? 'var(--red)' : '';
+const cbox = document.getElementById('cbox');
+const cc   = document.getElementById('cc');
+if (cbox && cc) {
+  cbox.addEventListener('input', () => {
+    cc.textContent = cbox.value.length;
+    cc.style.color = cbox.value.length > 900 ? 'var(--red)' : '';
   });
 }
 
-// ── Review form submit ────────────────────────────
+// ── Review Form Submit ────────────────────────────
 const reviewForm = document.getElementById('reviewForm');
 if (reviewForm) {
   reviewForm.addEventListener('submit', async e => {
     e.preventDefault();
     if (!window._LOGGED_IN) { location.href = window._LOGIN_URL; return; }
 
-    const rating  = ratingVal?.value;
-    const comment = commentBox?.value.trim();
-    const rvOk    = document.getElementById('rv-success');
-    const rvErr   = document.getElementById('rv-error');
+    const rating  = rval?.value;
+    const comment = cbox?.value.trim();
+    const rvOk    = document.getElementById('rv-ok');
+    const rvErr   = document.getElementById('rv-err');
     const btn     = document.getElementById('submitBtn');
-    const lbl     = document.getElementById('btnLabel');
-    const spin    = document.getElementById('btnSpinner');
+    const lbl     = document.getElementById('btnLbl');
+    const spin    = document.getElementById('btnSpin');
 
-    if (!rating)          return setErr(rvErr, 'Please select a star rating.');
+    if (!rating)            return setErr(rvErr, 'Please select a star rating.');
     if (comment.length < 5) return setErr(rvErr, 'Review must be at least 5 characters.');
 
-    hide(rvErr); rvErr.textContent = '';
+    hide(rvErr);
     lbl.style.display = 'none'; spin.style.display = '';
     btn.disabled = true;
 
@@ -167,7 +157,6 @@ if (reviewForm) {
         body: JSON.stringify({ movieId: window._MOVIE_ID, rating: parseInt(rating), comment }),
       });
       const data = await res.json();
-
       if (data.success) {
         reviewForm.style.display = 'none';
         show(rvOk);
@@ -186,36 +175,93 @@ if (reviewForm) {
 }
 
 function prependReview(r) {
-  const list = document.getElementById('reviewsList');
-  document.querySelector('.empty-reviews')?.remove();
-
+  document.querySelector('.empty-rv')?.remove();
   const badge = document.getElementById('rcount');
   if (badge) badge.textContent = parseInt(badge.textContent || 0) + 1;
 
-  const stars = Array.from({length:5},(_,i)=>
-    `<i class="fas fa-star ${i<r.rating?'s-on':'s-off'}"></i>`).join('');
-  const date  = new Date(r.createdAt||Date.now())
-    .toLocaleDateString('en-IN',{year:'numeric',month:'short',day:'numeric'});
+  const stars = Array.from({ length: 5 }, (_, i) =>
+    `<i class="fas fa-star ${i < r.rating ? 'son' : 'soff'}"></i>`).join('');
+  const date  = new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' });
   const init  = r.userId.username.charAt(0).toUpperCase();
 
-  const card  = Object.assign(document.createElement('div'), { className: 'review-card' });
+  const card = document.createElement('div');
+  card.className = 'rcard';
   card.innerHTML = `
-    <div class="rc-head">
-      <div class="rc-left">
-        <div class="rc-avatar">${init}</div>
-        <div><strong>${esc(r.userId.username)}</strong><small>${date}</small></div>
+    <div class="rcard-head">
+      <div class="rcard-left">
+        <div class="rc-av">${init}</div>
+        <div><div class="rc-name">${esc(r.userId.username)}</div><small>${date}</small></div>
       </div>
-      <div class="rc-stars">${stars}<span class="rbadge">${r.rating}/5</span></div>
+      <div class="rcard-right">
+        <div class="rc-stars">${stars}<span class="rbadge">${r.rating}/5</span></div>
+      </div>
     </div>
-    <p class="rc-comment">${esc(r.comment)}</p>`;
+    <p class="rc-comment">${esc(r.comment)}</p>
+    <div class="rc-actions">
+      <button class="like-btn" onclick="likeReview(this)" data-id="${r._id}">
+        <i class="far fa-heart"></i><span class="lcount">0</span>
+      </button>
+    </div>`;
 
+  const list = document.getElementById('reviewsList');
   if (list) list.prepend(card);
   else {
-    const wrap = document.querySelector('.reviews-list-wrap');
-    const nl   = Object.assign(document.createElement('div'), { id: 'reviewsList' });
+    const wrap = document.querySelector('.rlist-wrap');
+    const nl = Object.assign(document.createElement('div'), { id: 'reviewsList' });
     nl.appendChild(card);
     wrap?.appendChild(nl);
   }
+}
+
+// ── Like a review ─────────────────────────────────
+async function likeReview(btn) {
+  if (!window._LOGGED_IN) { location.href = window._LOGIN_URL; return; }
+  const id = btn.dataset.id;
+  try {
+    const res  = await fetch(`/api/review/${id}/like`, { method: 'POST' });
+    const data = await res.json();
+    if (data.success) {
+      btn.classList.toggle('liked', data.liked);
+      btn.querySelector('i').className = data.liked ? 'fas fa-heart' : 'far fa-heart';
+      btn.querySelector('.lcount').textContent = data.likeCount;
+    }
+  } catch { /* ignore */ }
+}
+
+// ── Follow a user ─────────────────────────────────
+async function toggleFollow(btn) {
+  if (!window._LOGGED_IN) { location.href = window._LOGIN_URL; return; }
+  const uid = btn.dataset.uid;
+  try {
+    const res  = await fetch(`/api/follow/${uid}`, { method: 'POST' });
+    const data = await res.json();
+    if (data.success) {
+      btn.classList.toggle('following', data.following);
+      btn.querySelector('span').textContent = data.following ? 'Following' : 'Follow';
+      btn.querySelector('i').className = data.following ? 'fas fa-user-check' : 'fas fa-user-plus';
+    }
+  } catch { /* ignore */ }
+}
+
+// ── Admin: Pin review ─────────────────────────────
+async function pinReview(btn) {
+  if (!window._IS_ADMIN) return;
+  const id = btn.dataset.id;
+  try {
+    const res  = await fetch(`/admin/review/${id}/pin`, { method: 'POST' });
+    const data = await res.json();
+    if (data.success) {
+      const card = btn.closest('.rcard');
+      card.classList.toggle('pinned', data.pinned);
+      btn.querySelector('i').classList.toggle('pinned-icon', data.pinned);
+      btn.title = data.pinned ? 'Unpin' : 'Pin';
+      // move to top if pinned
+      if (data.pinned) {
+        const list = document.getElementById('reviewsList');
+        if (list) list.prepend(card);
+      }
+    }
+  } catch { /* ignore */ }
 }
 
 // ── Utilities ─────────────────────────────────────
@@ -228,6 +274,14 @@ function setErr(el, msg) {
 }
 function esc(s) {
   return String(s)
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
+
+// ── Smooth anchor scroll ──────────────────────────
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    const t = document.querySelector(a.getAttribute('href'));
+    if (t) { e.preventDefault(); t.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  });
+});

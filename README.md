@@ -1,122 +1,93 @@
-# 🎬 MovieStar v2
+# 🎬 MovieStar v3
 
-A production-ready, Netflix-style South Indian movie review web application.
+Production-ready South Indian Movie Review App — Node.js + Express + EJS + MongoDB.
 
 ---
 
 ## 🚀 Quick Start
 
-### 1. Install dependencies
 ```bash
+# 1. Install
 npm install
-```
 
-### 2. Configure environment
-```bash
+# 2. Configure
 cp .env.example .env
-```
-Edit `.env` and set:
-| Variable | Description |
-|---|---|
-| `MONGO_URI` | MongoDB Atlas connection string |
-| `JWT_SECRET` | Any long random string |
-| `PORT` | 3000 (default) |
-| `NODE_ENV` | `development` or `production` |
+# Edit .env → set MONGO_URI and JWT_SECRET
 
-### 3. Seed the database (50 movies)
-```bash
+# 3. Seed 50 movies (generates local SVG posters)
 npm run seed
-```
 
-### 4. Start the app
-```bash
+# 4. Start
 npm start          # production
-npm run dev        # development with auto-reload
+npm run dev        # development (nodemon)
 ```
 
 Open → **http://localhost:3000**
 
 ---
 
-## 📁 Project Structure
+## 🔑 Admin Access
+
+Register with the username **`Websinaro`** (set in `.env` as `ADMIN_USERNAME`).  
+This account is automatically granted admin + verified status.
+
+Admin panel → **http://localhost:3000/admin**
+
+---
+
+## 📁 Structure
 
 ```
 moviestar/
-├── app.js                  # Entry point
-├── config/
-│   └── db.js               # MongoDB connection
-├── models/
-│   ├── Movie.js
-│   ├── User.js
-│   └── Review.js
-├── controllers/
-│   ├── movieController.js
-│   ├── authController.js
-│   └── reviewController.js
-├── routes/
-│   ├── web.js
-│   ├── auth.js
-│   └── api.js
-├── middleware/
-│   ├── auth.js             # JWT protect + softAuth
-│   ├── rateLimiter.js      # express-rate-limit configs
-│   └── errorHandler.js
-├── views/
-│   ├── index.ejs
-│   ├── movie.ejs
-│   ├── login.ejs
-│   ├── 404.ejs
-│   └── partials/
-│       ├── header.ejs
-│       ├── footer.ejs
-│       └── movieCard.ejs
+├── app.js
+├── config/        db.js, multer.js
+├── models/        Movie, User, Review, Log, BlockedIP, Announcement
+├── controllers/   movie, auth, review, user, admin
+├── routes/        web, auth, api, admin
+├── middleware/    auth, ipBlock, rateLimiter, errorHandler
+├── views/         index, movie, login, 404
+│   ├── partials/  header, footer, movieCard
+│   └── admin/     dashboard, movies, users, logs, _sidebar
 ├── public/
 │   ├── css/style.css
 │   ├── js/main.js
-│   └── images/placeholder.svg
-└── data/
-    └── seedMovies.js       # 50-movie dataset
+│   └── images/    (posters stored here by multer)
+└── data/seedMovies.js
 ```
 
 ---
 
-## 🔐 Security Features
+## ✅ Features
 
-- **Helmet** – secure HTTP headers
-- **xss-clean** – XSS attack prevention
-- **express-mongo-sanitize** – NoSQL injection prevention
-- **express-rate-limit** – spam / brute-force protection
-- **bcryptjs** – password hashing (cost factor 12)
-- **JWT** – stored in HTTP-only cookies (7-day expiry)
-- **express-validator** – server-side input validation
-- **Duplicate review prevention** – unique compound index
+| Feature | Status |
+|---|---|
+| Netflix-style dark UI | ✅ |
+| 50 South Indian movies | ✅ |
+| Local image upload (multer) | ✅ |
+| JWT auth (HTTP-only cookie) | ✅ |
+| bcrypt password hashing | ✅ |
+| Admin panel | ✅ |
+| Add/delete movies with poster upload | ✅ |
+| Verify users by username/UniqueID | ✅ |
+| View all users + hashed passwords | ✅ |
+| Pin reviews (admin) | ✅ |
+| Reviews: pinned → liked → newest | ✅ |
+| Like reviews | ✅ |
+| Follow/unfollow users | ✅ |
+| IP blocking after 5 failed logins | ✅ |
+| Security logs (login, fail, attack) | ✅ |
+| Export full DB as JSON | ✅ |
+| Pin announcement on homepage | ✅ |
+| Helmet + XSS clean + mongo-sanitize | ✅ |
+| Rate limiting | ✅ |
+| Responsive mobile design | ✅ |
 
 ---
 
 ## 🌐 Deploy to Render
 
-1. Push code to GitHub
-2. Create **New Web Service** on [render.com](https://render.com)
-3. Set **Build Command**: `npm install`
-4. Set **Start Command**: `npm start`
-5. Add environment variables in Render dashboard
-6. After first deploy, run the seed: open the Render shell → `npm run seed`
-
----
-
-## ✅ Features Checklist
-
-- [x] 50 South Indian movies (Tamil, Telugu, Malayalam, Kannada, Hindi)
-- [x] Homepage sections: Trending, Malayalam, Tamil, Telugu, Recent, Upcoming
-- [x] Movie detail page with reviews
-- [x] Star rating + review form
-- [x] Login / Register
-- [x] JWT authentication (HTTP-only cookie)
-- [x] One review per user per movie
-- [x] Average rating auto-calculated
-- [x] Reviews sorted by latest
-- [x] Live search
-- [x] Filter by language / type
-- [x] Rate limiting
-- [x] Fully responsive (mobile-first)
-- [x] Dark OTT theme
+1. Push to GitHub
+2. New Web Service → connect repo
+3. Build: `npm install` · Start: `npm start`
+4. Add env vars in Render dashboard
+5. Open Render shell → `npm run seed`

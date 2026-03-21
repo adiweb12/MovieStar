@@ -1,0 +1,18 @@
+<aside class="admin-sidebar">
+  <div class="sb-brand">🎬 <span>Admin</span></div>
+  <nav class="sb-nav">
+    <a href="/admin"         class="sb-link"><i class="fas fa-gauge-high"></i> Dashboard</a>
+    <a href="/admin/movies"  class="sb-link"><i class="fas fa-film"></i> Movies</a>
+    <a href="/admin/users"   class="sb-link"><i class="fas fa-users"></i> Users</a>
+    <a href="/admin/logs"    class="sb-link"><i class="fas fa-scroll"></i> Logs</a>
+    <a href="/admin/export"  class="sb-link"><i class="fas fa-download"></i> Export DB</a>
+    <a href="/"              class="sb-link"><i class="fas fa-arrow-left"></i> Back to Site</a>
+  </nav>
+  <div class="sb-user">
+    <div class="uav"><%=user.username.charAt(0).toUpperCase()%></div>
+    <div>
+      <strong><%=user.username%></strong>
+      <small>Administrator</small>
+    </div>
+  </div>
+</aside>

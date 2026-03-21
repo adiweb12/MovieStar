@@ -1,6 +1,8 @@
-const jwt  = require('jsonwebtoken');
+const jwt = require('jsonwebtoken');
 const { validationResult } = require('express-validator');
 const User = require('../models/User');
+const Log  = require('../models/Log');
+const { recordFailedLogin, clearFailedLogin } = require('../middleware/ipBlock');
 
 const COOKIE = {
   httpOnly: true,
@@ -9,60 +11,62 @@ const COOKIE = {
   maxAge:   7 * 24 * 60 * 60 * 1000,
 };
 
-const signToken = id => jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '7d' });
+const sign = id => jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
-// ── Show login / register page ────────────────────────────
-exports.showPage = (mode) => (req, res) => {
+exports.showPage = mode => (req, res) => {
   if (req.cookies.token) return res.redirect(req.query.redirect || '/');
   res.render('login', {
-    title:    mode === 'register' ? 'Register – MovieStar' : 'Login – MovieStar',
-    error:    null,
-    redirect: req.query.redirect || '/',
-    mode,
+    title: mode === 'register' ? 'Register – MovieStar' : 'Login – MovieStar',
+    error: null, redirect: req.query.redirect || '/', mode,
   });
 };
 
-// ── Handle login ──────────────────────────────────────────
 exports.login = async (req, res) => {
   const errors = validationResult(req);
   const { redirect = '/' } = req.body;
-  if (!errors.isEmpty()) {
-    return res.render('login', { title: 'Login – MovieStar', error: errors.array()[0].msg, redirect, mode: 'login' });
-  }
+  const ip = req.ip;
+  const ua = req.headers['user-agent'];
+  if (!errors.isEmpty())
+    return res.render('login', { title: 'Login', error: errors.array()[0].msg, redirect, mode: 'login' });
+
   try {
     const { username, password } = req.body;
     const user = await User.findOne({ username }).select('+password');
     if (!user || !(await user.comparePassword(password))) {
-      return res.render('login', { title: 'Login – MovieStar', error: 'Invalid username or password', redirect, mode: 'login' });
+      await recordFailedLogin(ip, username, ua);
+      return res.render('login', { title: 'Login', error: 'Invalid username or password', redirect, mode: 'login' });
     }
-    res.cookie('token', signToken(user._id), COOKIE);
+    await clearFailedLogin(ip);
+    await Log.create({ type: 'login', ip, username, ua, message: `User "${username}" logged in` });
+    res.cookie('token', sign(user._id), COOKIE);
     res.redirect(redirect);
   } catch {
-    res.render('login', { title: 'Login – MovieStar', error: 'Something went wrong', redirect, mode: 'login' });
+    res.render('login', { title: 'Login', error: 'Something went wrong', redirect, mode: 'login' });
   }
 };
 
-// ── Handle register ───────────────────────────────────────
 exports.register = async (req, res) => {
   const errors = validationResult(req);
   const { redirect = '/' } = req.body;
-  if (!errors.isEmpty()) {
-    return res.render('login', { title: 'Register – MovieStar', error: errors.array()[0].msg, redirect, mode: 'register' });
-  }
+  if (!errors.isEmpty())
+    return res.render('login', { title: 'Register', error: errors.array()[0].msg, redirect, mode: 'register' });
+
   try {
     const { username, password } = req.body;
-    if (await User.findOne({ username })) {
-      return res.render('login', { title: 'Register – MovieStar', error: 'Username already taken', redirect, mode: 'register' });
-    }
-    const user = await User.create({ username, password });
-    res.cookie('token', signToken(user._id), COOKIE);
+    if (await User.findOne({ username }))
+      return res.render('login', { title: 'Register', error: 'Username already taken', redirect, mode: 'register' });
+
+    const isAdmin = username === (process.env.ADMIN_USERNAME || 'Websinaro');
+    const user = await User.create({ username, password, isAdmin, isVerified: isAdmin });
+    await Log.create({ type: 'register', ip: req.ip, username, ua: req.headers['user-agent'],
+      message: `New user "${username}" registered` });
+    res.cookie('token', sign(user._id), COOKIE);
     res.redirect(redirect);
-  } catch {
-    res.render('login', { title: 'Register – MovieStar', error: 'Something went wrong', redirect, mode: 'register' });
+  } catch (err) {
+    res.render('login', { title: 'Register', error: 'Something went wrong', redirect, mode: 'register' });
   }
 };
 
-// ── Logout ────────────────────────────────────────────────
 exports.logout = (req, res) => {
   res.clearCookie('token');
   res.redirect('/');

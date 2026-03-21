@@ -1,0 +1,38 @@
+<%- include('../partials/header') %>
+<div class="admin-wrap">
+  <%- include('_sidebar') %>
+  <div class="admin-main">
+    <div class="admin-topbar">
+      <h1><i class="fas fa-scroll"></i> Security Logs</h1>
+    </div>
+    <div class="admin-section">
+      <div class="log-filters">
+        <a href="/admin/logs"              class="pill <%=filterType==='all'?       'active':''%>">All</a>
+        <a href="/admin/logs?type=login"   class="pill <%=filterType==='login'?     'active':''%>">Login</a>
+        <a href="/admin/logs?type=login_fail" class="pill <%=filterType==='login_fail'?'active':''%>">Failed</a>
+        <a href="/admin/logs?type=blocked" class="pill <%=filterType==='blocked'?   'active':''%>">Blocked</a>
+        <a href="/admin/logs?type=attack"  class="pill <%=filterType==='attack'?    'active':''%>">Attacks</a>
+        <a href="/admin/logs?type=register"class="pill <%=filterType==='register'?  'active':''%>">Register</a>
+        <a href="/admin/logs?type=review"  class="pill <%=filterType==='review'?    'active':''%>">Reviews</a>
+      </div>
+      <div class="table-wrap" style="margin-top:16px">
+        <table class="atable">
+          <thead><tr><th>Type</th><th>Username</th><th>IP</th><th>Message</th><th>User Agent</th><th>Time</th></tr></thead>
+          <tbody>
+            <%logs.forEach(l=>{%>
+              <tr>
+                <td><span class="log-badge log-<%=l.type%>"><%=l.type%></span></td>
+                <td><%=l.username||'–'%></td>
+                <td><%=l.ip||'–'%></td>
+                <td class="log-msg"><%=l.message||'–'%></td>
+                <td><small class="ua-txt"><%=l.ua?l.ua.substring(0,60)+'…':'–'%></small></td>
+                <td><small><%=new Date(l.createdAt).toLocaleString()%></small></td>
+              </tr>
+            <%})%>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+<%- include('../partials/footer') %>
