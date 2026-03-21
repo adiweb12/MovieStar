@@ -1,4 +1,5 @@
 require('dotenv').config();
+const { image_search } = require('duckduckgo-images-api');
 const mongoose = require('mongoose');
 const Movie    = require('../models/Movie');
 
@@ -12,11 +13,17 @@ function parseDate(str) {
 }
 
 // Placeholder image helper (no broken TMDB paths)
-function img(text) {
-  const encoded = encodeURIComponent(text);
-  // This pulls a random high-quality photo related to the movie title
-  // 300x450 is the standard movie poster aspect ratio
-  return `https://source.unsplash.com/300x450/?movie,${encoded}`;
+async function img(text) {
+  try {
+    // Searches for the movie title + 'poster'
+    const results = await image_search({ query: `${text} movie poster`, moderate: true });
+    
+    // Return the first image found
+    return results[0].image; 
+  } catch (e) {
+    // Fallback if search fails
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(text)}&background=1a1a2e&color=fff`;
+  }
 }
 
 const movies = [
