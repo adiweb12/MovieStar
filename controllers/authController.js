@@ -14,10 +14,24 @@ const COOKIE = {
 const sign = id => jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
 exports.showPage = mode => (req, res) => {
-  if (req.cookies.token) return res.redirect(req.query.redirect || '/');
+  // If we have a token, try to see if it's actually valid
+  if (req.cookies.token) {
+    try {
+      jwt.verify(req.cookies.token, process.env.JWT_SECRET);
+      // If valid, go to the page we wanted
+      return res.redirect(req.query.redirect || '/');
+    } catch (err) {
+      // If invalid/expired, KILL the cookie so we don't loop
+      res.clearCookie('token');
+    }
+  }
+
   res.render('login', {
-    title: mode === 'register' ? 'Register – MovieStar' : 'Login – MovieStar',
-    error: null, redirect: req.query.redirect || '/', mode,
+    title: mode === 'register' ? 'Register' : 'Login',
+    error: null, 
+    redirect: req.query.redirect || '/', 
+    mode,
+    user: null // Keeps EJS from crashing on mobile
   });
 };
 
