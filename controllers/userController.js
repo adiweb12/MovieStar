@@ -48,10 +48,16 @@ exports.search = async (req, res, next) => {
 exports.people = async (req, res, next) => {
   try {
     const { type = 'followers' } = req.query;
-    const user = await User.findById(req.params.userId)
-      .populate(type === 'following' ? 'following' : 'followers', 'username isVerified isAdmin followers');
+    const field = type === 'following' ? 'following' : 'followers';
+    const user  = await User.findById(req.params.userId).select(field);
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
-    const users = type === 'following' ? user.following : user.followers;
-    res.json({ success: true, users: users || [] });
+
+    // Fetch each user in the list with their details
+    const ids   = user[field] || [];
+    const users = await User.find({ _id: { $in: ids } })
+      .select('username isVerified isAdmin followers following')
+      .lean();
+
+    res.json({ success: true, users });
   } catch (err) { next(err); }
 };

@@ -2,15 +2,17 @@ const express = require('express');
 const router  = express.Router();
 const { adminOnly } = require('../middleware/auth');
 const { admin: adminLimiter } = require('../middleware/rateLimiter');
-const upload  = require('../config/multer');
+const { single: uploadSingle } = require('../config/multer');
 const ctrl    = require('../controllers/adminController');
 
 router.use(adminOnly, adminLimiter);
 
 router.get('/',                    ctrl.dashboard);
 router.get('/movies',              ctrl.movieList);
-router.post('/movies/add',         upload.single('image'), ctrl.addMovie);
+router.post('/movies/add',         uploadSingle('image'), ctrl.addMovie);
 router.post('/movies/delete/:id',  ctrl.deleteMovie);
+router.get('/movies/edit/:id',     ctrl.editMovie);
+router.post('/movies/edit/:id',    uploadSingle('image'), ctrl.updateMovie);
 router.get('/users',               ctrl.userList);
 router.post('/users/search',       ctrl.searchUser);
 router.post('/users/verify/:id',   ctrl.verifyUser);

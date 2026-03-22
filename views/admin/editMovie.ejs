@@ -1,0 +1,141 @@
+<%- include('../partials/header') %>
+<div class="admin-wrap">
+  <%- include('_sidebar') %>
+  <div class="admin-main">
+    <div class="admin-topbar">
+      <h1><i class="fas fa-film"></i> Edit Movie</h1>
+      <a href="/admin/movies" class="btn btn-ghost"><i class="fas fa-arrow-left"></i> Back</a>
+    </div>
+    <% if(typeof error !== 'undefined' && error){ %>
+      <div class="flash-err" style="margin-bottom:16px"><i class="fas fa-times"></i> <%= error %></div>
+    <% } %>
+
+    <div class="admin-section">
+      <div class="edit-poster-preview">
+        <img id="currentPoster" src="<%= movie.image %>" alt="Current poster"
+             onerror="this.src='/images/placeholder.svg'"/>
+        <p class="edit-poster-label">Current Poster</p>
+      </div>
+
+      <form action="/admin/movies/edit/<%= movie._id %>" method="POST" enctype="multipart/form-data" class="add-movie-form">
+        <div class="form-grid">
+          <div class="fg">
+            <label>Title *</label>
+            <input type="text" name="title" value="<%= movie.title %>" required/>
+          </div>
+          <div class="fg">
+            <label>Language *</label>
+            <select name="language" required>
+              <% ['Malayalam','Tamil','Telugu','Kannada','Hindi','Other'].forEach(l => { %>
+                <option value="<%= l %>" <%= movie.language === l ? 'selected' : '' %>><%= l %></option>
+              <% }) %>
+            </select>
+          </div>
+          <div class="fg">
+            <label>Type</label>
+            <select name="type">
+              <% ['released','trending','upcoming'].forEach(t => { %>
+                <option value="<%= t %>" <%= movie.type === t ? 'selected' : '' %>><%= t %></option>
+              <% }) %>
+            </select>
+          </div>
+          <div class="fg">
+            <label>Release Date</label>
+            <input type="date" name="releaseDate"
+              value="<%= movie.releaseDate ? new Date(movie.releaseDate).toISOString().split('T')[0] : '' %>"/>
+          </div>
+          <div class="fg">
+            <label>Duration (min)</label>
+            <input type="number" name="duration" value="<%= movie.duration || '' %>" min="1"/>
+          </div>
+          <div class="fg">
+            <label>Director</label>
+            <input type="text" name="director" value="<%= movie.director || '' %>"/>
+          </div>
+          <div class="fg">
+            <label>Cast <small>(comma separated)</small></label>
+            <input type="text" name="cast" value="<%= (movie.cast||[]).join(', ') %>"/>
+          </div>
+          <div class="fg">
+            <label>Genre <small>(comma separated)</small></label>
+            <input type="text" name="genre" value="<%= (movie.genre||[]).join(', ') %>"/>
+          </div>
+          <div class="fg fg-full">
+            <label>Description *</label>
+            <textarea name="description" rows="4" required><%= movie.description %></textarea>
+          </div>
+
+          <!-- Image section: upload file OR paste URL -->
+          <div class="fg fg-full">
+            <label>Poster Image <small>(Upload file OR paste a URL — leave both empty to keep current)</small></label>
+
+            <div class="image-options-grid">
+              <!-- Option A: Upload file -->
+              <div class="img-option">
+                <div class="img-option-label"><i class="fas fa-upload"></i> Upload New Image</div>
+                <div class="file-upload-wrap">
+                  <label for="imgInput" class="file-upload-label">
+                    <i class="fas fa-cloud-upload-alt"></i> Choose File
+                  </label>
+                  <input type="file" id="imgInput" name="image"
+                         accept="image/jpeg,image/png,image/webp"
+                         onchange="previewUpload(this)"/>
+                  <span id="fname" class="fname">No file chosen</span>
+                </div>
+              </div>
+
+              <!-- Option B: Paste URL -->
+              <div class="img-option">
+                <div class="img-option-label"><i class="fas fa-link"></i> Or Paste Image URL</div>
+                <input type="url" name="imageUrl" id="imageUrlInput"
+                       placeholder="https://example.com/poster.jpg"
+                       oninput="previewUrl(this.value)"/>
+              </div>
+            </div>
+
+            <div id="imgPreview" class="img-preview" style="display:none">
+              <img id="prevImg" src="" alt="New preview"/>
+              <span class="img-preview-label">New poster preview</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="edit-actions">
+          <button type="submit" class="btn btn-red btn-lg">
+            <i class="fas fa-save"></i> Save Changes
+          </button>
+          <a href="/admin/movies" class="btn btn-ghost btn-lg">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+function previewUpload(input) {
+  const f = input.files[0];
+  document.getElementById('fname').textContent = f ? f.name : 'No file chosen';
+  if (f) {
+    document.getElementById('imageUrlInput').value = '';
+    const r = new FileReader();
+    r.onload = e => {
+      document.getElementById('prevImg').src = e.target.result;
+      document.getElementById('imgPreview').style.display = 'flex';
+    };
+    r.readAsDataURL(f);
+  }
+}
+function previewUrl(url) {
+  if (url && url.startsWith('http')) {
+    document.getElementById('prevImg').src = url;
+    document.getElementById('imgPreview').style.display = 'flex';
+    // clear file input
+    document.getElementById('imgInput').value = '';
+    document.getElementById('fname').textContent = 'No file chosen';
+  } else {
+    document.getElementById('imgPreview').style.display = 'none';
+  }
+}
+</script>
+
+<%- include('../partials/footer') %>

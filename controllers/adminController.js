@@ -44,9 +44,18 @@ exports.movieList = async (req, res, next) => {
 // POST /admin/movies/add
 exports.addMovie = async (req, res, next) => {
   try {
-    const { title, description, language, type, director, cast, genre, releaseDate, duration } = req.body;
-    if (!req.file) return res.redirect('/admin/movies?error=Image+required');
-    const image = `/images/movies/${req.file.filename}`;
+    const { title, description, language, type, director, cast, genre, releaseDate, duration, imageUrl } = req.body;
+
+    // Image priority: uploaded file > pasted URL
+    let image;
+    if (req.file) {
+      image = `/images/movies/${req.file.filename}`;
+    } else if (imageUrl && imageUrl.trim()) {
+      image = imageUrl.trim();
+    } else {
+      return res.redirect('/admin/movies?error=Please+upload+an+image+or+provide+an+image+URL');
+    }
+
     await Movie.create({
       title, description, language, type: type || 'released',
       director: director || '',
@@ -162,5 +171,50 @@ exports.unblockIP = async (req, res, next) => {
   try {
     await BlockedIP.deleteOne({ ip: req.params.ip });
     res.redirect('/admin?success=IP+unblocked');
+  } catch (err) { next(err); }
+};
+
+// GET /admin/movies/edit/:id
+exports.editMovie = async (req, res, next) => {
+  try {
+    const movie = await Movie.findById(req.params.id);
+    if (!movie) return res.redirect('/admin/movies?error=Movie+not+found');
+    res.render('admin/editMovie', {
+      title: 'Edit Movie', user: req.user, movie,
+      success: null, error: null,
+    });
+  } catch (err) { next(err); }
+};
+
+// POST /admin/movies/edit/:id
+exports.updateMovie = async (req, res, next) => {
+  try {
+    const { title, description, language, type, director, cast, genre, releaseDate, duration, imageUrl } = req.body;
+    const movie = await Movie.findById(req.params.id);
+    if (!movie) return res.redirect('/admin/movies?error=Movie+not+found');
+
+    // Determine image: uploaded file > pasted URL > keep existing
+    let image = movie.image;
+    if (req.file) {
+      // Delete old local image if it exists
+      if (movie.image && movie.image.startsWith('/images/movies/')) {
+        const old = path.join(__dirname, '..', 'public', movie.image);
+        if (fs.existsSync(old)) fs.unlinkSync(old);
+      }
+      image = `/images/movies/${req.file.filename}`;
+    } else if (imageUrl && imageUrl.trim()) {
+      image = imageUrl.trim();
+    }
+
+    await Movie.findByIdAndUpdate(req.params.id, {
+      title, description, language, type: type || movie.type,
+      director: director || '',
+      cast:  cast  ? cast.split(',').map(s => s.trim()).filter(Boolean)  : movie.cast,
+      genre: genre ? genre.split(',').map(s => s.trim()).filter(Boolean) : movie.genre,
+      releaseDate: releaseDate ? new Date(releaseDate) : movie.releaseDate,
+      duration:    duration    ? parseInt(duration)    : movie.duration,
+      image,
+    });
+    res.redirect('/admin/movies?success=Movie+updated+successfully');
   } catch (err) { next(err); }
 };

@@ -35,11 +35,22 @@
           <div class="fg"><label>Genre <small>(comma separated)</small></label><input type="text" name="genre" placeholder="Action, Drama"/></div>
           <div class="fg fg-full"><label>Description *</label><textarea name="description" rows="4" required placeholder="Movie description…"></textarea></div>
           <div class="fg fg-full">
-            <label>Poster Image * <small>(JPG/PNG/WEBP, max 5MB)</small></label>
-            <div class="file-upload-wrap">
-              <label for="imgInput" class="file-upload-label"><i class="fas fa-cloud-upload-alt"></i> Choose Image</label>
-              <input type="file" id="imgInput" name="image" accept="image/jpeg,image/png,image/webp" required onchange="previewImg(this)"/>
-              <span id="fname" class="fname">No file chosen</span>
+            <label>Poster Image <small>(Upload file OR paste a URL)</small></label>
+            <div class="image-options-grid">
+              <div class="img-option">
+                <div class="img-option-label"><i class="fas fa-upload"></i> Upload File <small>(JPG/PNG/WEBP, max 5MB)</small></div>
+                <div class="file-upload-wrap">
+                  <label for="imgInput" class="file-upload-label"><i class="fas fa-cloud-upload-alt"></i> Choose Image</label>
+                  <input type="file" id="imgInput" name="image" accept="image/jpeg,image/png,image/webp" onchange="previewImg(this)"/>
+                  <span id="fname" class="fname">No file chosen</span>
+                </div>
+              </div>
+              <div class="img-option">
+                <div class="img-option-label"><i class="fas fa-link"></i> Or Paste Image URL</div>
+                <input type="url" name="imageUrl" id="addImageUrl"
+                       placeholder="https://example.com/poster.jpg"
+                       oninput="previewAddUrl(this.value)"/>
+              </div>
             </div>
             <div id="imgPreview" class="img-preview" style="display:none">
               <img id="prevImg" src="" alt="Preview"/>
@@ -66,9 +77,15 @@
                 <td><%=m.averageRating>0?`★ ${m.averageRating}`:'–'%></td>
                 <td><small><%=new Date(m.createdAt).toLocaleDateString()%></small></td>
                 <td>
-                  <form action="/admin/movies/delete/<%=m._id%>" method="POST" onsubmit="return confirm('Delete <%=m.title.replace(/'/g,"\\'")%>?')">
-                    <button class="btn-sm btn-danger"><i class="fas fa-trash"></i></button>
-                  </form>
+                  <div style="display:flex;gap:6px;align-items:center">
+                    <a href="/admin/movies/edit/<%=m._id%>" class="btn-sm btn-ok" style="text-decoration:none">
+                      <i class="fas fa-edit"></i> Edit
+                    </a>
+                    <form action="/admin/movies/delete/<%=m._id%>" method="POST"
+                          onsubmit="return confirm('Delete this movie?')" style="margin:0">
+                      <button class="btn-sm btn-danger"><i class="fas fa-trash"></i></button>
+                    </form>
+                  </div>
                 </td>
               </tr>
             <%})%>
@@ -82,7 +99,24 @@
 function previewImg(input){
   const f=input.files[0];
   document.getElementById('fname').textContent=f?f.name:'No file chosen';
-  if(f){const r=new FileReader();r.onload=e=>{document.getElementById('prevImg').src=e.target.result;document.getElementById('imgPreview').style.display='block';};r.readAsDataURL(f);}
+  if(f){
+    // clear URL field
+    const urlField = document.getElementById('addImageUrl');
+    if(urlField) urlField.value='';
+    const r=new FileReader();
+    r.onload=e=>{document.getElementById('prevImg').src=e.target.result;document.getElementById('imgPreview').style.display='flex';};
+    r.readAsDataURL(f);
+  }
+}
+function previewAddUrl(url){
+  if(url && url.startsWith('http')){
+    document.getElementById('prevImg').src=url;
+    document.getElementById('imgPreview').style.display='flex';
+    document.getElementById('imgInput').value='';
+    document.getElementById('fname').textContent='No file chosen';
+  } else {
+    document.getElementById('imgPreview').style.display='none';
+  }
 }
 </script>
 <%- include('../partials/footer') %>

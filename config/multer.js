@@ -20,4 +20,14 @@ const fileFilter = (req, file, cb) => {
   ok ? cb(null, true) : cb(new Error('Only JPEG/PNG/WEBP images allowed'), false);
 };
 
-module.exports = multer({ storage, fileFilter, limits: { fileSize: 5 * 1024 * 1024 } });
+const upload = multer({ storage, fileFilter, limits: { fileSize: 5 * 1024 * 1024 } });
+
+// Wrap single upload to not fail when no file provided
+const uploadSingle = (field) => (req, res, next) => {
+  upload.single(field)(req, res, (err) => {
+    if (err && err.code !== 'LIMIT_UNEXPECTED_FILE') return next(err);
+    next();
+  });
+};
+
+module.exports = { single: (f) => uploadSingle(f), upload };

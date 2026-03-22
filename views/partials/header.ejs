@@ -27,6 +27,10 @@
         <button id="searchBtn" class="search-submit-btn" title="Search"><i class="fas fa-search"></i></button>
         <div id="searchDrop" class="sdrop"></div>
       </div>
+      <!-- Standalone search icon always visible on mobile -->
+      <a href="/search" class="mobile-search-btn" title="Search">
+        <i class="fas fa-search"></i>
+      </a>
       <% if(typeof user !== 'undefined' && user){ %>
         <div class="upill">
           <a href="/profile/<%= user.username %>" class="upill-link">
