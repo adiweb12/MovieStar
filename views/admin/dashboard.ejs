@@ -33,6 +33,20 @@
     </div>
 
     <% if(blockedIPs.length){ %>
+    <!-- MovieBase Sync -->
+    <div class="admin-section">
+      <h2><i class="fas fa-rotate"></i> Movie Database Sync</h2>
+      <div class="sync-status-row">
+        <div class="sync-info">
+          <p>Pulls movies from <strong>movie_base</strong> microservice every 3 hours.</p>
+          <p class="sync-sub">Cloudinary poster URLs are included. Manual admin movies are never overwritten.</p>
+        </div>
+        <form action="/admin/sync-movies" method="POST" style="flex-shrink:0">
+          <button type="submit" class="btn btn-red"><i class="fas fa-rotate"></i> Sync Now</button>
+        </form>
+      </div>
+    </div>
+
     <div class="admin-section">
       <h2><i class="fas fa-ban"></i> Blocked IPs</h2>
       <div class="table-wrap">

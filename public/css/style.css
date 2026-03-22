@@ -1258,3 +1258,17 @@ a.rc-name:hover { color: var(--red); }
   .edit-actions { flex-direction: column; }
   .edit-actions .btn { justify-content: center; }
 }
+
+/* ═══════════════════════════════════════════════
+   ADMIN: Sync status panel
+═══════════════════════════════════════════════ */
+.sync-status-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.sync-info p { font-size: .88rem; color: var(--txt2); margin-bottom: 6px; }
+.sync-info strong { color: var(--txt); }
+.sync-sub { font-size: .78rem !important; color: var(--txt3) !important; }

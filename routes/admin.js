@@ -22,4 +22,15 @@ router.post('/announcement',       ctrl.setAnnouncement);
 router.post('/review/:id/pin',     ctrl.pinReview);
 router.post('/ip/unblock/:ip',     ctrl.unblockIP);
 
+// Manual movie_base sync trigger
+router.post('/sync-movies', async (req, res) => {
+  try {
+    const sync = require('../services/movieBaseSync');
+    sync.runSync().catch(e => console.error('Manual sync error:', e));
+    res.redirect('/admin?success=Movie+sync+started+in+background');
+  } catch(e) {
+    res.redirect('/admin?error=Sync+failed:+'+encodeURIComponent(e.message));
+  }
+});
+
 module.exports = router;

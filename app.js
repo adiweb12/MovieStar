@@ -67,6 +67,9 @@ app.use('/admin', adminRoutes);
 app.use((req, res) => res.status(404).render('404', { title: '404 – Not Found' }));
 app.use(errorHandler);
 
+// Start movie_base sync (only if MOVIE_BASE_URL is set)
+movieBaseSync.start();
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🎬  MovieStar → http://localhost:${PORT}`));
 module.exports = app;

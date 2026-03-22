@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const movieSchema = new mongoose.Schema({
+  _movieBaseId: { type: Number, index: true, sparse: true }, // ID from movie_base PostgreSQL
   title:        { type: String, required: true, trim: true },
   description:  { type: String, required: true },
   image:        { type: String, required: true },
