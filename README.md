@@ -22,7 +22,7 @@ npm start          # production
 npm run dev        # development (nodemon)
 ```
 
-Open → **http://localhost:3000**
+Open → **https://moviestar-vz2t.onrender.com/**
 
 ---
 
