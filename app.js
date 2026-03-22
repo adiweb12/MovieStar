@@ -1,6 +1,28 @@
 require('dotenv').config();
+
+const express       = require('express');
+const path          = require('path');
+const cookieParser  = require('cookie-parser');
+const morgan        = require('morgan');
+const helmet        = require('helmet');
+const xss           = require('xss-clean');
+const mongoSanitize = require('express-mongo-sanitize');
+const mongoose      = require('mongoose');
+
+const connectDB     = require('./config/db');
+const webRoutes     = require('./routes/web');
+const authRoutes    = require('./routes/auth');
+const apiRoutes     = require('./routes/api');
+const adminRoutes   = require('./routes/admin');
+const errorHandler  = require('./middleware/errorHandler');
+const movieBaseSync = require('./services/movieBaseSync');
+
+const app = express();
+
+// ── Connect DB ────────────────────────────────────
+connectDB();
+
 // ── Auto-create admin after DB connects ──────────
-const mongoose = require('mongoose');
 mongoose.connection.once('open', async () => {
   try {
     const User      = require('./models/User');
@@ -16,30 +38,15 @@ mongoose.connection.once('open', async () => {
     }
   } catch (e) { console.error('Admin init:', e.message); }
 });
-const express      = require('express');
-const path         = require('path');
-const cookieParser = require('cookie-parser');
-const morgan       = require('morgan');
-const helmet       = require('helmet');
-const xss          = require('xss-clean');
-const mongoSanitize= require('express-mongo-sanitize');
 
-const connectDB    = require('./config/db');
-const webRoutes    = require('./routes/web');
-const authRoutes   = require('./routes/auth');
-const apiRoutes    = require('./routes/api');
-const adminRoutes  = require('./routes/admin');
-const errorHandler = require('./middleware/errorHandler');
-
-const app = express();
-connectDB();
-
-// Trust Render/Heroku/nginx reverse proxy — fixes rate-limit X-Forwarded-For error
+// ── Trust reverse proxy (Render/Heroku) ──────────
 app.set('trust proxy', 1);
 
+// ── View engine ───────────────────────────────────
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
+// ── Security middleware ───────────────────────────
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -59,17 +66,20 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 if (process.env.NODE_ENV !== 'production') app.use(morgan('dev'));
 
+// ── Routes ────────────────────────────────────────
 app.use('/',      webRoutes);
 app.use('/auth',  authRoutes);
 app.use('/api',   apiRoutes);
 app.use('/admin', adminRoutes);
 
+// ── 404 + error handler ───────────────────────────
 app.use((req, res) => res.status(404).render('404', { title: '404 – Not Found' }));
 app.use(errorHandler);
 
-// Start movie_base sync (only if MOVIE_BASE_URL is set)
+// ── movie_base sync (only runs if MOVIE_BASE_URL is set) ──
 movieBaseSync.start();
 
+// ── Start server ──────────────────────────────────
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🎬  MovieStar → http://localhost:${PORT}`));
 module.exports = app;
