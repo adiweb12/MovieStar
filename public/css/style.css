@@ -895,3 +895,117 @@ a.rc-name:hover { color: var(--red); }
 
 /* ── Username hint text fix ── */
 .iw input::placeholder { color: var(--txt3); }
+
+/* ═══════════════════════════════════════════════
+   SORT TABS  (movie detail page)
+═══════════════════════════════════════════════ */
+.rlist-topbar {
+  display: flex; align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px; flex-wrap: wrap; gap: 10px;
+}
+.sort-tabs { display: flex; gap: 6px; }
+.sort-tab {
+  display: flex; align-items: center; gap: 6px;
+  padding: 7px 16px; border-radius: 20px;
+  border: 1.5px solid var(--border);
+  font-size: .8rem; font-weight: 600;
+  color: var(--txt2); transition: var(--ease); cursor: pointer;
+}
+.sort-tab:hover { border-color: var(--red); color: var(--txt); }
+.sort-tab.active {
+  background: var(--red); border-color: var(--red); color: #fff;
+}
+
+/* ═══════════════════════════════════════════════
+   SEARCH DROPDOWN  (movies + users)
+═══════════════════════════════════════════════ */
+.sd-section {
+  padding: 6px 12px 4px;
+  font-size: .7rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .7px;
+  color: var(--txt3);
+  border-top: 1px solid var(--border);
+}
+.sd-section:first-child { border-top: none; }
+.sd-empty { padding: 14px 15px; color: var(--txt3); font-size: .83rem; }
+.sdi-user { align-items: center; }
+.sdu-av {
+  width: 34px; height: 34px; border-radius: 50%; flex-shrink: 0;
+  background: linear-gradient(135deg, var(--red), #9b59b6);
+  display: flex; align-items: center; justify-content: center;
+  font-size: .8rem; font-weight: 700;
+}
+
+/* ═══════════════════════════════════════════════
+   SEARCH PAGE
+═══════════════════════════════════════════════ */
+.search-page { max-width: 1200px; margin: 0 auto; padding: 0 28px 60px; }
+.search-hero {
+  padding: 40px 0 32px; border-bottom: 1px solid var(--border); margin-bottom: 36px;
+}
+.search-hero h1 {
+  font-size: 1.6rem; font-weight: 800; margin-bottom: 20px;
+  display: flex; align-items: center; gap: 10px;
+}
+.sb-input-wrap {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--bg3); border: 1.5px solid var(--border);
+  border-radius: 12px; padding: 4px 4px 4px 16px;
+  max-width: 580px;
+  transition: border-color var(--ease);
+}
+.sb-input-wrap:focus-within { border-color: var(--red); }
+.sb-input-wrap i { color: var(--txt3); font-size: .9rem; }
+.sb-input-wrap input {
+  flex: 1; background: none; border: none; outline: none;
+  color: var(--txt); font-size: .95rem; font-family: inherit;
+  padding: 8px 0;
+}
+.sr-label { margin-top: 12px; color: var(--txt2); font-size: .9rem; }
+.sr-label strong { color: var(--txt); }
+
+.sr-section { margin-bottom: 40px; }
+.sr-section h2 {
+  font-size: 1.1rem; font-weight: 700; margin-bottom: 18px;
+  display: flex; align-items: center; gap: 9px;
+}
+
+.sr-movie-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 16px;
+}
+.sr-movie-grid .mcard { flex: none; width: 100%; }
+
+.sr-user-grid { display: flex; flex-direction: column; gap: 10px; max-width: 640px; }
+.sr-user-card {
+  display: flex; align-items: center; gap: 14px;
+  background: var(--bg3); border: 1px solid var(--border);
+  border-radius: var(--r2); padding: 14px 18px;
+  transition: var(--ease);
+}
+.sr-user-card:hover { border-color: rgba(229,41,62,.4); transform: translateX(4px); }
+.sru-av {
+  width: 46px; height: 46px; border-radius: 50%; flex-shrink: 0;
+  background: linear-gradient(135deg, var(--red), #9b59b6);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.1rem; font-weight: 800;
+}
+.sru-info { flex: 1; }
+.sru-info strong { display: flex; align-items: center; gap: 6px; font-size: .95rem; }
+.sru-info small { color: var(--txt3); font-size: .78rem; display: block; margin-top: 2px; }
+.sru-arrow { color: var(--txt3); font-size: .8rem; }
+
+.sr-empty {
+  text-align: center; padding: 80px 0; color: var(--txt3);
+}
+.sr-empty i { font-size: 3rem; margin-bottom: 16px; display: block; }
+.sr-empty h3 { font-size: 1.3rem; color: var(--txt2); margin-bottom: 8px; }
+.sr-empty p  { margin-bottom: 24px; }
+
+/* ── Responsive ── */
+@media(max-width: 600px) {
+  .sr-movie-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+  .rlist-topbar { flex-direction: column; align-items: flex-start; }
+}

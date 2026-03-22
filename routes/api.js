@@ -10,6 +10,7 @@ router.use(rl.api);
 
 router.get('/movies',           reviewCtrl.getMovies);
 router.get('/reviews/:movieId', reviewCtrl.getReviews);
+router.get('/search',           userCtrl.search);         // combined movie+user search
 
 router.post('/review',
   protect, rl.review,

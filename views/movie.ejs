@@ -81,7 +81,17 @@
 
       <!-- Reviews List -->
       <div class="rlist-wrap">
-        <h2>Reviews <span class="cnt-badge" id="rcount"><%=reviews.length%></span></h2>
+        <div class="rlist-topbar">
+          <h2>Reviews <span class="cnt-badge" id="rcount"><%=reviews.length%></span></h2>
+          <div class="sort-tabs">
+            <button class="sort-tab active" data-sort="top" onclick="switchSort(this,'top')">
+              <i class="fas fa-trophy"></i> Top
+            </button>
+            <button class="sort-tab" data-sort="new" onclick="switchSort(this,'new')">
+              <i class="fas fa-clock"></i> New
+            </button>
+          </div>
+        </div>
         <%if(!reviews.length){%>
           <div class="empty-rv"><i class="fas fa-comments"></i><p>No reviews yet. Be the first!</p></div>
         <%}else{%>

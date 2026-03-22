@@ -2,12 +2,12 @@
    MovieStar v3 · Frontend JS
 ───────────────────────────────────────────────── */
 
-// ── Navbar solid on scroll ───────────────────────
+// ── Navbar solid on scroll ────────────────────────
 const navbar = document.getElementById('navbar');
 if (navbar) window.addEventListener('scroll', () =>
   navbar.classList.toggle('solid', window.scrollY > 60));
 
-// ── Mobile menu ──────────────────────────────────
+// ── Mobile menu ───────────────────────────────────
 const hburg = document.getElementById('hburg');
 const mmenu = document.getElementById('mmenu');
 if (hburg && mmenu) {
@@ -21,7 +21,7 @@ if (hburg && mmenu) {
   });
 }
 
-// ── Live Search ───────────────────────────────────
+// ── Combined Search (movies + users) ─────────────
 const si = document.getElementById('searchInput');
 const sd = document.getElementById('searchDrop');
 let stimer;
@@ -32,12 +32,17 @@ if (si && sd) {
     if (q.length < 2) { sd.style.display = 'none'; sd.innerHTML = ''; return; }
     stimer = setTimeout(async () => {
       try {
-        const r = await fetch(`/api/movies?search=${encodeURIComponent(q)}&limit=7`);
+        const r = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
         const d = await r.json();
-        if (!d.data?.length) {
-          sd.innerHTML = '<div style="padding:13px 15px;color:var(--txt3);font-size:.83rem">No results</div>';
-        } else {
-          sd.innerHTML = d.data.map(m => `
+        if (!d.movies?.length && !d.users?.length) {
+          sd.innerHTML = '<div class="sd-empty">No results found</div>';
+          sd.style.display = 'block';
+          return;
+        }
+        let html = '';
+        if (d.movies?.length) {
+          html += '<div class="sd-section">🎬 Movies</div>';
+          html += d.movies.map(m => `
             <a href="/movie/${m._id}" class="sdi">
               <img src="${m.image}" alt="" onerror="this.src='/images/placeholder.svg'"/>
               <div>
@@ -46,25 +51,41 @@ if (si && sd) {
               </div>
             </a>`).join('');
         }
+        if (d.users?.length) {
+          html += '<div class="sd-section">👤 Reviewers</div>';
+          html += d.users.map(u => `
+            <a href="/profile/${esc(u.username)}" class="sdi sdi-user">
+              <div class="sdu-av">${esc(u.username.charAt(0).toUpperCase())}</div>
+              <div>
+                <div class="sdn">${esc(u.username)}${u.isVerified ? ' <i class="fas fa-circle-check vtick"></i>' : ''}${u.isAdmin ? ' <span class="admin-tag">Admin</span>' : ''}</div>
+                <div class="sdm">${u.followers ? u.followers.length : 0} followers</div>
+              </div>
+            </a>`).join('');
+        }
+        sd.innerHTML = html;
         sd.style.display = 'block';
-      } catch { /* ignore */ }
+      } catch (e) { console.error(e); }
     }, 280);
   });
   document.addEventListener('click', e => {
     if (!si.contains(e.target) && !sd.contains(e.target)) sd.style.display = 'none';
+  });
+  si.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      const q = si.value.trim();
+      if (q.length > 0) window.location.href = `/search?q=${encodeURIComponent(q)}`;
+    }
   });
 }
 
 // ── Filter Pills (homepage) ───────────────────────
 const pills   = document.querySelectorAll('.pill');
 const shelves = document.querySelectorAll('.shelf');
-
 pills.forEach(pill => {
   pill.addEventListener('click', () => {
     pills.forEach(p => p.classList.remove('active'));
     pill.classList.add('active');
     const f = pill.dataset.filter;
-
     shelves.forEach(shelf => {
       if (f === 'all') { shelf.style.display = ''; return; }
       const cards = shelf.querySelectorAll('.mcard');
@@ -84,20 +105,14 @@ pills.forEach(pill => {
     });
   });
 });
-
-// Apply ?filter= from URL on page load
 const urlF = new URLSearchParams(window.location.search).get('filter');
-if (urlF) {
-  const p = [...pills].find(p => p.dataset.filter === urlF);
-  if (p) p.click();
-}
+if (urlF) { const p = [...pills].find(p => p.dataset.filter === urlF); if (p) p.click(); }
 
-// ── Star Picker ───────────────────────────────────
-const spWrap  = document.getElementById('sp');
-const rval    = document.getElementById('rval');
-const rlabel  = document.getElementById('rlabel');
-const LABELS  = ['', 'Poor', 'Fair', 'Good', 'Great', 'Excellent!'];
-
+// ── Star Picker ────────────────────────────────────
+const spWrap = document.getElementById('sp');
+const rval   = document.getElementById('rval');
+const rlabel = document.getElementById('rlabel');
+const LABELS = ['', 'Poor', 'Fair', 'Good', 'Great', 'Excellent!'];
 if (spWrap) {
   const stars = spWrap.querySelectorAll('.sp');
   stars.forEach(s => {
@@ -118,7 +133,7 @@ function hlStars(n, lock = false) {
   });
 }
 
-// ── Char counter ──────────────────────────────────
+// ── Char counter ───────────────────────────────────
 const cbox = document.getElementById('cbox');
 const cc   = document.getElementById('cc');
 if (cbox && cc) {
@@ -128,28 +143,24 @@ if (cbox && cc) {
   });
 }
 
-// ── Review Form Submit ────────────────────────────
+// ── Review Form Submit ─────────────────────────────
 const reviewForm = document.getElementById('reviewForm');
 if (reviewForm) {
   reviewForm.addEventListener('submit', async e => {
     e.preventDefault();
     if (!window._LOGGED_IN) { location.href = window._LOGIN_URL; return; }
-
     const rating  = rval?.value;
     const comment = cbox?.value.trim();
-    const rvOk    = document.getElementById('rv-ok');
-    const rvErr   = document.getElementById('rv-err');
-    const btn     = document.getElementById('submitBtn');
-    const lbl     = document.getElementById('btnLbl');
-    const spin    = document.getElementById('btnSpin');
-
+    const rvOk  = document.getElementById('rv-ok');
+    const rvErr = document.getElementById('rv-err');
+    const btn   = document.getElementById('submitBtn');
+    const lbl   = document.getElementById('btnLbl');
+    const spin  = document.getElementById('btnSpin');
     if (!rating)            return setErr(rvErr, 'Please select a star rating.');
     if (comment.length < 5) return setErr(rvErr, 'Review must be at least 5 characters.');
-
     hide(rvErr);
     lbl.style.display = 'none'; spin.style.display = '';
     btn.disabled = true;
-
     try {
       const res  = await fetch('/api/review', {
         method: 'POST',
@@ -178,19 +189,20 @@ function prependReview(r) {
   document.querySelector('.empty-rv')?.remove();
   const badge = document.getElementById('rcount');
   if (badge) badge.textContent = parseInt(badge.textContent || 0) + 1;
-
   const stars = Array.from({ length: 5 }, (_, i) =>
     `<i class="fas fa-star ${i < r.rating ? 'son' : 'soff'}"></i>`).join('');
-  const date  = new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' });
-  const init  = r.userId.username.charAt(0).toUpperCase();
-
+  const date = new Date().toLocaleDateString('en-IN', { year:'numeric', month:'short', day:'numeric' });
+  const init = r.userId.username.charAt(0).toUpperCase();
   const card = document.createElement('div');
   card.className = 'rcard';
   card.innerHTML = `
     <div class="rcard-head">
       <div class="rcard-left">
         <div class="rc-av">${init}</div>
-        <div><a href="/profile/${esc(r.userId.username)}" class="rc-name rc-name-link">${esc(r.userId.username)}</a><small>${date}</small></div>
+        <div>
+          <a href="/profile/${esc(r.userId.username)}" class="rc-name">${esc(r.userId.username)}</a>
+          <small>${date}</small>
+        </div>
       </div>
       <div class="rcard-right">
         <div class="rc-stars">${stars}<span class="rbadge">${r.rating}/5</span></div>
@@ -202,20 +214,20 @@ function prependReview(r) {
         <i class="far fa-heart"></i><span class="lcount">0</span>
       </button>
     </div>`;
-
   const list = document.getElementById('reviewsList');
   if (list) list.prepend(card);
   else {
     const wrap = document.querySelector('.rlist-wrap');
-    const nl = Object.assign(document.createElement('div'), { id: 'reviewsList' });
-    nl.appendChild(card);
-    wrap?.appendChild(nl);
+    const nl   = Object.assign(document.createElement('div'), { id: 'reviewsList' });
+    nl.appendChild(card); wrap?.appendChild(nl);
   }
 }
 
-// ── Like a review ─────────────────────────────────
+// ── Like a review ──────────────────────────────────
 async function likeReview(btn) {
   if (!window._LOGGED_IN) { location.href = window._LOGIN_URL; return; }
+  if (btn.disabled) return;
+  btn.disabled = true;
   const id = btn.dataset.id;
   try {
     const res  = await fetch(`/api/review/${id}/like`, { method: 'POST' });
@@ -225,12 +237,15 @@ async function likeReview(btn) {
       btn.querySelector('i').className = data.liked ? 'fas fa-heart' : 'far fa-heart';
       btn.querySelector('.lcount').textContent = data.likeCount;
     }
-  } catch { /* ignore */ }
+  } catch (e) { console.error(e); }
+  btn.disabled = false;
 }
 
-// ── Follow a user ─────────────────────────────────
+// ── Follow a user ──────────────────────────────────
 async function toggleFollow(btn) {
   if (!window._LOGGED_IN) { location.href = window._LOGIN_URL; return; }
+  if (btn.disabled) return;
+  btn.disabled = true;
   const uid = btn.dataset.uid;
   try {
     const res  = await fetch(`/api/follow/${uid}`, { method: 'POST' });
@@ -240,10 +255,11 @@ async function toggleFollow(btn) {
       btn.querySelector('span').textContent = data.following ? 'Following' : 'Follow';
       btn.querySelector('i').className = data.following ? 'fas fa-user-check' : 'fas fa-user-plus';
     }
-  } catch { /* ignore */ }
+  } catch (e) { console.error(e); }
+  btn.disabled = false;
 }
 
-// ── Admin: Pin review ─────────────────────────────
+// ── Admin: Pin review ──────────────────────────────
 async function pinReview(btn) {
   if (!window._IS_ADMIN) return;
   const id = btn.dataset.id;
@@ -255,16 +271,57 @@ async function pinReview(btn) {
       card.classList.toggle('pinned', data.pinned);
       btn.querySelector('i').classList.toggle('pinned-icon', data.pinned);
       btn.title = data.pinned ? 'Unpin' : 'Pin';
-      // move to top if pinned
       if (data.pinned) {
         const list = document.getElementById('reviewsList');
         if (list) list.prepend(card);
       }
     }
-  } catch { /* ignore */ }
+  } catch (e) { console.error(e); }
 }
 
-// ── Utilities ─────────────────────────────────────
+// ── Sort reviews ───────────────────────────────────
+function switchSort(btn, mode) {
+  document.querySelectorAll('.sort-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  const url = new URL(window.location.href);
+  url.searchParams.set('sort', mode);
+  window.location.href = url.toString();
+}
+
+// ── Profile follow ─────────────────────────────────
+async function profileFollow(btn) {
+  const uid = btn.dataset.uid;
+  try {
+    const res  = await fetch('/api/follow/' + uid, { method: 'POST' });
+    const data = await res.json();
+    if (data.success) {
+      btn.classList.toggle('btn-red',   !data.following);
+      btn.classList.toggle('btn-ghost',  data.following);
+      btn.querySelector('i').className = data.following ? 'fas fa-user-check' : 'fas fa-user-plus';
+      btn.querySelector('span').textContent = data.following ? 'Following' : 'Follow';
+      // Update follower count accurately
+      document.querySelectorAll('.pstat').forEach(el => {
+        if (el.querySelector('small')?.textContent === 'Followers') {
+          el.querySelector('span').textContent = data.followers;
+        }
+      });
+    }
+  } catch (e) { console.error(e); }
+}
+
+// ── Highlight active nav ───────────────────────────
+(function(){
+  const path = window.location.pathname;
+  document.querySelectorAll('.nav-link').forEach(a => {
+    if (a.getAttribute('href') === path) a.classList.add('active');
+  });
+  document.querySelectorAll('.sb-link').forEach(a => {
+    const href = a.getAttribute('href');
+    if (href !== '/' && path.startsWith(href)) a.classList.add('active');
+  });
+})();
+
+// ── Utilities ──────────────────────────────────────
 function show(el) { if (el) el.style.display = ''; }
 function hide(el) { if (el) el.style.display = 'none'; }
 function setErr(el, msg) {
@@ -274,29 +331,6 @@ function setErr(el, msg) {
 }
 function esc(s) {
   return String(s)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
-
-// ── Smooth anchor scroll ──────────────────────────
-document.querySelectorAll('a[href^="#"]').forEach(a => {
-  a.addEventListener('click', e => {
-    const t = document.querySelector(a.getAttribute('href'));
-    if (t) { e.preventDefault(); t.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
-  });
-});
-
-// ── Profile: reviewer name link in newly added cards ──
-// Already handled in prependReview — username links to /profile/username
-
-// ── Highlight active nav link ──────────────────────
-(function(){
-  const path = window.location.pathname;
-  document.querySelectorAll('.nav-link').forEach(a => {
-    if (a.getAttribute('href') === path) a.classList.add('active');
-  });
-  document.querySelectorAll('.sb-link').forEach(a => {
-    if (window.location.pathname.startsWith(a.getAttribute('href')) && a.getAttribute('href') !== '/')
-      a.classList.add('active');
-  });
-})();

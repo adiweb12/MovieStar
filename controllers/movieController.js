@@ -30,10 +30,16 @@ exports.movieDetail = async (req, res, next) => {
     const movie = await Movie.findById(req.params.id);
     if (!movie) return res.status(404).render('404', { title: '404' });
 
-    // Sort: pinned first, then by likeCount desc, then newest
+    // "top" sort: pinned > verified reviewer > most liked > newest
+    // "new" sort: pinned > newest
+    const sortMode = req.query.sort === 'new' ? 'new' : 'top';
+    const sortObj  = sortMode === 'new'
+      ? { pinned: -1, createdAt: -1 }
+      : { pinned: -1, likeCount: -1, createdAt: -1 };
+
     const reviews = await Review.find({ movieId: movie._id })
       .populate('userId', 'username isVerified isAdmin')
-      .sort({ pinned: -1, likeCount: -1, createdAt: -1 })
+      .sort(sortObj)
       .limit(100);
 
     const userReview = req.user
@@ -53,7 +59,7 @@ exports.movieDetail = async (req, res, next) => {
     res.render('movie', {
       title: `${movie.title} – MovieStar`,
       user: req.user || null,
-      movie, reviews: enriched, userReview,
+      movie, reviews: enriched, userReview, sortMode,
     });
   } catch (err) { next(err); }
 };

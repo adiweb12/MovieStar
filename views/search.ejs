@@ -1,0 +1,58 @@
+<%- include('partials/header') %>
+<div class="search-page">
+  <div class="search-hero">
+    <h1><i class="fas fa-search"></i> Search Results</h1>
+    <form action="/search" method="GET" class="search-bar-form">
+      <div class="sb-input-wrap">
+        <i class="fas fa-search"></i>
+        <input type="text" name="q" value="<%= query %>" placeholder="Search movies or reviewers…" autofocus/>
+        <button type="submit" class="btn btn-red">Search</button>
+      </div>
+    </form>
+    <% if(query){ %><p class="sr-label">Results for "<strong><%= query %></strong>"</p><% } %>
+  </div>
+
+  <div class="search-results">
+    <% if(movies.length){ %>
+    <div class="sr-section">
+      <h2><i class="fas fa-film"></i> Movies <span class="cnt-badge"><%= movies.length %></span></h2>
+      <div class="sr-movie-grid">
+        <% movies.forEach(m => { %>
+          <%- include('partials/movieCard', { movie: m }) %>
+        <% }) %>
+      </div>
+    </div>
+    <% } %>
+
+    <% if(users.length){ %>
+    <div class="sr-section">
+      <h2><i class="fas fa-users"></i> Reviewers <span class="cnt-badge"><%= users.length %></span></h2>
+      <div class="sr-user-grid">
+        <% users.forEach(u => { %>
+          <a href="/profile/<%= u.username %>" class="sr-user-card">
+            <div class="sru-av"><%= u.username.charAt(0).toUpperCase() %></div>
+            <div class="sru-info">
+              <strong><%= u.username %>
+                <% if(u.isVerified){ %><i class="fas fa-circle-check vtick"></i><% } %>
+                <% if(u.isAdmin){ %><span class="admin-tag">Admin</span><% } %>
+              </strong>
+              <small><%= u.followers ? u.followers.length : 0 %> followers</small>
+            </div>
+            <i class="fas fa-chevron-right sru-arrow"></i>
+          </a>
+        <% }) %>
+      </div>
+    </div>
+    <% } %>
+
+    <% if(!movies.length && !users.length && query){ %>
+      <div class="sr-empty">
+        <i class="fas fa-search"></i>
+        <h3>No results for "<%= query %>"</h3>
+        <p>Try a different movie title or username.</p>
+        <a href="/" class="btn btn-red">Browse All Movies</a>
+      </div>
+    <% } %>
+  </div>
+</div>
+<%- include('partials/footer') %>
