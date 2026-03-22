@@ -24,5 +24,6 @@ router.post('/review',
 
 router.post('/review/:id/like', protect, reviewCtrl.likeReview);
 router.post('/follow/:id',      protect, userCtrl.follow);
+router.get('/people/:userId',          userCtrl.people);
 
 module.exports = router;

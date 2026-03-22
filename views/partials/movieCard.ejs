@@ -7,10 +7,13 @@
       <% if (movie.type==='upcoming')  { %><span class="badge bpurple">Coming Soon</span><% } %>
       <% if (movie.type==='trending')  { %><span class="badge bred">🔥 Trending</span><% } %>
       <div class="play-btn"><i class="fas fa-play"></i></div>
-      <% if (movie.averageRating>0) { %>
-        <div class="crating"><i class="fas fa-star"></i> <%= movie.averageRating %></div>
-      <% } %>
     </div>
+    <!-- Always-visible star rating badge -->
+    <% if (movie.averageRating>0) { %>
+      <div class="card-star-badge">
+        <i class="fas fa-star"></i> <%= movie.averageRating %>
+      </div>
+    <% } %>
   </div>
   <div class="mcard-body">
     <p class="mcard-title"><%= movie.title %></p>

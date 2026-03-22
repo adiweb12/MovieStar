@@ -76,6 +76,15 @@ if (si && sd) {
       if (q.length > 0) window.location.href = `/search?q=${encodeURIComponent(q)}`;
     }
   });
+  // Search button click
+  const searchBtn = document.getElementById('searchBtn');
+  if (searchBtn) {
+    searchBtn.addEventListener('click', () => {
+      const q = si.value.trim();
+      if (q.length > 0) window.location.href = `/search?q=${encodeURIComponent(q)}`;
+      else si.focus();
+    });
+  }
 }
 
 // ── Filter Pills (homepage) ───────────────────────

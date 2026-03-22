@@ -1,53 +1,66 @@
 <%- include('partials/header') %>
 
+<!-- Followers/Following Modal -->
+<div id="peopleModal" class="modal-overlay" style="display:none">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3 id="modalTitle">Followers</h3>
+      <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body" id="modalBody">
+      <div class="modal-loading"><i class="fas fa-spinner fa-spin"></i></div>
+    </div>
+  </div>
+</div>
+
 <div class="profile-page">
 
-  <!-- Cover + Avatar -->
-  <div class="profile-cover">
-    <div class="cover-gradient"></div>
-  </div>
+  <!-- Cover -->
+  <div class="profile-cover"><div class="cover-gradient"></div></div>
 
   <div class="profile-body">
 
-    <!-- Left Column: Info Card -->
+    <!-- Left: Info Card -->
     <div class="profile-sidebar">
       <div class="profile-card">
         <div class="profile-av-wrap">
           <div class="profile-av"><%= profile.username.charAt(0).toUpperCase() %></div>
-          <% if(profile.isVerified){ %>
-            <div class="pav-tick"><i class="fas fa-circle-check"></i></div>
-          <% } %>
+          <% if(profile.isVerified){ %><div class="pav-tick"><i class="fas fa-circle-check"></i></div><% } %>
         </div>
 
         <h1 class="pname">
           <%= profile.username %>
           <% if(profile.isAdmin){ %><span class="admin-tag-lg">Admin</span><% } %>
         </h1>
-
         <% if(profile.isVerified){ %>
           <p class="pverified"><i class="fas fa-circle-check"></i> Verified Reviewer</p>
         <% } %>
 
+        <!-- Stats — clickable to open modal -->
         <div class="pstats-grid">
           <div class="pstat">
             <span><%= reviewCount %></span>
             <small>Reviews</small>
           </div>
-          <div class="pstat">
-            <span><%= followerCount %></span>
-            <small>Followers</small>
+          <div class="pstat pstat-click"
+               onclick="openModal('followers','<%= profile._id %>','Followers')"
+               title="View followers">
+            <span id="followerCountEl"><%= followerCount %></span>
+            <small>Followers <i class="fas fa-chevron-right pstat-arr"></i></small>
           </div>
-          <div class="pstat">
-            <span><%= followingCount %></span>
-            <small>Following</small>
+          <div class="pstat pstat-click"
+               onclick="openModal('following','<%= profile._id %>','Following')"
+               title="View following">
+            <span id="followingCountEl"><%= followingCount %></span>
+            <small>Following <i class="fas fa-chevron-right pstat-arr"></i></small>
           </div>
         </div>
 
+        <!-- Follow / Unfollow -->
         <% if(!isOwnProfile && user){ %>
           <button id="followBtn"
-            class="btn btn-full <%= isFollowing ? 'btn-ghost' : 'btn-red' %>"
-            data-uid="<%= profile._id %>"
-            onclick="profileFollow(this)">
+            class="btn btn-full <%= isFollowing ? 'btn-ghost following' : 'btn-red' %>"
+            data-uid="<%= profile._id %>">
             <i class="fas <%= isFollowing ? 'fa-user-check' : 'fa-user-plus' %>"></i>
             <span><%= isFollowing ? 'Following' : 'Follow' %></span>
           </button>
@@ -63,6 +76,7 @@
           Joined <%= new Date(profile.createdAt).toLocaleDateString('en-IN',{year:'numeric',month:'long'}) %>
         </div>
 
+        <!-- Admin panel button (own profile + admin only) -->
         <% if(profile.isAdmin && isOwnProfile){ %>
         <div class="admin-panel-btn-wrap">
           <a href="/admin" class="btn btn-admin-panel btn-full">
@@ -72,41 +86,9 @@
         </div>
         <% } %>
       </div>
-
-      <!-- Followers preview -->
-      <% if(profile.followers && profile.followers.length){ %>
-      <div class="ppeople-card">
-        <h3><i class="fas fa-users"></i> Followers</h3>
-        <div class="ppeople-list">
-          <% profile.followers.slice(0,8).forEach(f=>{ %>
-            <a href="/profile/<%= f.username %>" class="ppeople-item" title="<%= f.username %>">
-              <div class="pp-av"><%= f.username.charAt(0).toUpperCase() %></div>
-              <span><%= f.username %></span>
-              <% if(f.isVerified){ %><i class="fas fa-circle-check vtick"></i><% } %>
-            </a>
-          <% }) %>
-        </div>
-      </div>
-      <% } %>
-
-      <!-- Following preview -->
-      <% if(profile.following && profile.following.length){ %>
-      <div class="ppeople-card">
-        <h3><i class="fas fa-user-friends"></i> Following</h3>
-        <div class="ppeople-list">
-          <% profile.following.slice(0,8).forEach(f=>{ %>
-            <a href="/profile/<%= f.username %>" class="ppeople-item" title="<%= f.username %>">
-              <div class="pp-av"><%= f.username.charAt(0).toUpperCase() %></div>
-              <span><%= f.username %></span>
-              <% if(f.isVerified){ %><i class="fas fa-circle-check vtick"></i><% } %>
-            </a>
-          <% }) %>
-        </div>
-      </div>
-      <% } %>
     </div>
 
-    <!-- Right Column: Reviews Feed -->
+    <!-- Right: Reviews Feed -->
     <div class="profile-feed">
       <div class="pfeed-header">
         <h2><i class="fas fa-star"></i> Reviews by <%= profile.username %></h2>
@@ -137,12 +119,10 @@
               <div class="pfeed-body">
                 <div class="pfeed-stars">
                   <% for(let i=1;i<=5;i++){ %>
-                    <i class="fas fa-star <%= i<=r.rating?'son':'soff'%>"></i>
+                    <i class="fas fa-star <%= i<=r.rating?'son':'soff' %>"></i>
                   <% } %>
                   <span class="rbadge"><%= r.rating %>/5</span>
-                  <% if(r.pinned){ %>
-                    <span class="pin-mini"><i class="fas fa-thumbtack"></i> Pinned</span>
-                  <% } %>
+                  <% if(r.pinned){ %><span class="pin-mini"><i class="fas fa-thumbtack"></i> Pinned</span><% } %>
                 </div>
                 <p class="pfeed-comment">"<%= r.comment %>"</p>
                 <div class="pfeed-foot">
@@ -150,9 +130,7 @@
                     <i class="fas fa-clock"></i>
                     <%= new Date(r.createdAt).toLocaleDateString('en-IN',{year:'numeric',month:'short',day:'numeric'}) %>
                   </span>
-                  <span class="pfeed-likes">
-                    <i class="fas fa-heart"></i> <%= r.likeCount||0 %>
-                  </span>
+                  <span class="pfeed-likes"><i class="fas fa-heart"></i> <%= r.likeCount||0 %></span>
                 </div>
               </div>
             </div>
@@ -164,28 +142,72 @@
 </div>
 
 <script>
-async function profileFollow(btn){
-  const uid = btn.dataset.uid;
-  try{
-    const res  = await fetch('/api/follow/'+uid,{method:'POST'});
-    const data = await res.json();
-    if(data.success){
-      btn.classList.toggle('btn-red', !data.following);
-      btn.classList.toggle('btn-ghost', data.following);
-      btn.querySelector('i').className = data.following?'fas fa-user-check':'fas fa-user-plus';
-      btn.querySelector('span').textContent = data.following?'Following':'Follow';
-      // update follower count
-      const fcEl = document.querySelector('.pstat span');
-      // find the followers stat
-      document.querySelectorAll('.pstat').forEach(el=>{
-        if(el.querySelector('small')?.textContent==='Followers'){
-          const n=parseInt(el.querySelector('span').textContent)||0;
-          el.querySelector('span').textContent = data.following?n+1:Math.max(0,n-1);
-        }
-      });
-    }
-  }catch(e){ console.error(e); }
+// ── Attach follow button ───────────────────────────
+const followBtn = document.getElementById('followBtn');
+if (followBtn) {
+  followBtn.addEventListener('click', async () => {
+    const uid = followBtn.dataset.uid;
+    followBtn.disabled = true;
+    try {
+      const res  = await fetch('/api/follow/' + uid, { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        const isNowFollowing = data.following;
+        followBtn.classList.toggle('btn-red',   !isNowFollowing);
+        followBtn.classList.toggle('btn-ghost',   isNowFollowing);
+        followBtn.classList.toggle('following',   isNowFollowing);
+        followBtn.querySelector('i').className = isNowFollowing ? 'fas fa-user-check' : 'fas fa-user-plus';
+        followBtn.querySelector('span').textContent = isNowFollowing ? 'Following' : 'Follow';
+        // Update count with real value from server
+        const el = document.getElementById('followerCountEl');
+        if (el) el.textContent = data.followers;
+      } else {
+        alert(data.message || 'Something went wrong');
+      }
+    } catch(e) { console.error(e); }
+    followBtn.disabled = false;
+  });
 }
+
+// ── Followers / Following Modal ────────────────────
+async function openModal(type, userId, title) {
+  const modal = document.getElementById('peopleModal');
+  const body  = document.getElementById('modalBody');
+  const tEl   = document.getElementById('modalTitle');
+  tEl.textContent = title;
+  body.innerHTML  = '<div class="modal-loading"><i class="fas fa-spinner fa-spin"></i></div>';
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+
+  try {
+    const res  = await fetch('/api/people/' + userId + '?type=' + type);
+    const data = await res.json();
+    if (!data.users || !data.users.length) {
+      body.innerHTML = '<div class="modal-empty"><i class="fas fa-user-slash"></i><p>No ' + title.toLowerCase() + ' yet.</p></div>';
+      return;
+    }
+    body.innerHTML = data.users.map(u => `
+      <a href="/profile/${u.username}" class="modal-user" onclick="closeModal()">
+        <div class="mu-av">${u.username.charAt(0).toUpperCase()}</div>
+        <div class="mu-info">
+          <strong>${u.username}${u.isVerified ? ' <i class="fas fa-circle-check vtick"></i>' : ''}${u.isAdmin ? ' <span class="admin-tag">Admin</span>' : ''}</strong>
+          <small>${u.followers ? u.followers.length : 0} followers</small>
+        </div>
+        <i class="fas fa-chevron-right mu-arr"></i>
+      </a>`).join('');
+  } catch(e) {
+    body.innerHTML = '<div class="modal-empty"><p>Failed to load. Try again.</p></div>';
+  }
+}
+
+function closeModal() {
+  document.getElementById('peopleModal').style.display = 'none';
+  document.body.style.overflow = '';
+}
+document.getElementById('peopleModal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeModal();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 </script>
 
 <%- include('partials/footer') %>

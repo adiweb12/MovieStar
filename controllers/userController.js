@@ -43,3 +43,15 @@ exports.search = async (req, res, next) => {
     res.json({ success: true, movies, users });
   } catch (err) { next(err); }
 };
+
+// GET /api/people/:userId?type=followers|following
+exports.people = async (req, res, next) => {
+  try {
+    const { type = 'followers' } = req.query;
+    const user = await User.findById(req.params.userId)
+      .populate(type === 'following' ? 'following' : 'followers', 'username isVerified isAdmin followers');
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    const users = type === 'following' ? user.following : user.followers;
+    res.json({ success: true, users: users || [] });
+  } catch (err) { next(err); }
+};
