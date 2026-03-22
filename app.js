@@ -34,6 +34,9 @@ const errorHandler = require('./middleware/errorHandler');
 const app = express();
 connectDB();
 
+// Trust Render/Heroku/nginx reverse proxy — fixes rate-limit X-Forwarded-For error
+app.set('trust proxy', 1);
+
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 

@@ -1,66 +1,100 @@
 <%- include('partials/header') %>
 <div class="detail-page">
-  <div class="backdrop" style="background-image:url('<%= movie.image %>')"><div class="bfade"></div></div>
 
+  <!-- Backdrop -->
+  <div class="backdrop" style="background-image:url('<%= movie.image %>')">
+    <div class="bfade"></div>
+  </div>
+
+  <!-- Movie Hero -->
   <div class="dhero">
     <div class="dposter-wrap">
       <img src="<%= movie.image %>" alt="<%= movie.title %>" class="dposter"
            onerror="this.onerror=null;this.src='/images/placeholder.svg'"/>
-      <% if(movie.type==='upcoming'){%><span class="badge bpurple badge-lg">Coming Soon</span><%}%>
-      <% if(movie.type==='trending'){%><span class="badge bred badge-lg">🔥 Trending</span><%}%>
+      <% if(movie.type==='upcoming'){ %><span class="badge bpurple badge-lg">Coming Soon</span><% } %>
+      <% if(movie.type==='trending'){  %><span class="badge bred badge-lg">🔥 Trending</span><% } %>
     </div>
+
     <div class="dinfo">
       <h1><%= movie.title %></h1>
       <div class="dmeta">
-        <% if(movie.releaseDate){%><span><i class="fas fa-calendar-alt"></i> <%= new Date(movie.releaseDate).toLocaleDateString('en-IN',{year:'numeric',month:'long',day:'numeric'})%></span><%}%>
-        <% if(movie.duration){%><span><i class="fas fa-clock"></i> <%=Math.floor(movie.duration/60)%>h <%=movie.duration%60%>m</span><%}%>
+        <% if(movie.releaseDate){ %>
+          <span><i class="fas fa-calendar-alt"></i>
+            <%= new Date(movie.releaseDate).toLocaleDateString('en-IN',{year:'numeric',month:'long',day:'numeric'}) %>
+          </span>
+        <% } %>
+        <% if(movie.duration){ %>
+          <span><i class="fas fa-clock"></i> <%= Math.floor(movie.duration/60) %>h <%= movie.duration%60 %>m</span>
+        <% } %>
         <span><i class="fas fa-globe"></i> <%= movie.language %></span>
       </div>
-      <% if(movie.genre&&movie.genre.length){%>
-        <div class="dtags"><% movie.genre.forEach(g=>{%><span class="dtag"><%=g%></span><%})%></div>
-      <%}%>
-      <% if(movie.averageRating>0){%>
-        <div class="dstars">
-          <% for(let i=1;i<=5;i++){%><i class="fas fa-star <%=i<=Math.round(movie.averageRating)?'son':'soff'%>"></i><%}%>
-          <strong class="rnum"><%= movie.averageRating %></strong>
-          <span class="rcnt">(<%= movie.reviewCount %> review<%= movie.reviewCount!==1?'s':''%>)</span>
+
+      <% if(movie.genre && movie.genre.length){ %>
+        <div class="dtags">
+          <% movie.genre.forEach(g=>{ %><span class="dtag"><%= g %></span><% }) %>
         </div>
-      <%}else{%><div class="dstars dim"><i class="fas fa-star soff"></i> No ratings yet</div><%}%>
+      <% } %>
+
+      <% if(movie.averageRating > 0){ %>
+        <div class="dstars">
+          <% for(let i=1;i<=5;i++){ %>
+            <i class="fas fa-star <%= i<=Math.round(movie.averageRating)?'son':'soff' %>"></i>
+          <% } %>
+          <strong class="rnum"><%= movie.averageRating %></strong>
+          <span class="rcnt">(<%= movie.reviewCount %> review<%= movie.reviewCount!==1?'s':'' %>)</span>
+        </div>
+      <% } else { %>
+        <div class="dstars dim"><i class="fas fa-star soff"></i> No ratings yet</div>
+      <% } %>
+
       <p class="ddesc"><%= movie.description %></p>
-      <% if(movie.director){%><p class="dcrew"><strong>Director:</strong> <%= movie.director %></p><%}%>
-      <% if(movie.cast&&movie.cast.length){%><p class="dcrew"><strong>Cast:</strong> <%= movie.cast.join(', ') %></p><%}%>
+      <% if(movie.director){ %><p class="dcrew"><strong>Director:</strong> <%= movie.director %></p><% } %>
+      <% if(movie.cast && movie.cast.length){ %>
+        <p class="dcrew"><strong>Cast:</strong> <%= movie.cast.join(', ') %></p>
+      <% } %>
     </div>
   </div>
 
+  <!-- Review Section -->
   <div class="review-section">
     <div class="review-grid">
 
       <!-- Write Review Box -->
       <div class="rbox" id="rbox">
         <h2>Write a Review</h2>
-        <% if(!user){%>
+
+        <% if(!user){ %>
           <div class="auth-nudge">
             <div class="lock-ico"><i class="fas fa-lock"></i></div>
             <p>Login to rate and review this movie.</p>
-            <a href="/auth/login?redirect=/movie/<%=movie._id%>" class="btn btn-red btn-full">Login</a>
-            <a href="/auth/register?redirect=/movie/<%=movie._id%>" class="btn btn-ghost btn-full" style="margin-top:10px">Register</a>
+            <a href="/auth/login?redirect=/movie/<%= movie._id %>" class="btn btn-red btn-full">Login</a>
+            <a href="/auth/register?redirect=/movie/<%= movie._id %>" class="btn btn-ghost btn-full" style="margin-top:10px">Register</a>
           </div>
-        <%}else if(userReview){%>
+
+        <% } else if(userReview){ %>
           <div class="done-box">
             <i class="fas fa-check-circle" style="color:var(--green);font-size:2rem"></i>
             <p>Your review is posted.</p>
-            <div class="done-stars"><% for(let i=1;i<=5;i++){%><i class="fas fa-star <%=i<=userReview.rating?'son':'soff'%>"></i><%}%></div>
+            <div class="done-stars">
+              <% for(let i=1;i<=5;i++){ %>
+                <i class="fas fa-star <%= i<=userReview.rating?'son':'soff' %>"></i>
+              <% } %>
+            </div>
             <blockquote>"<%= userReview.comment %>"</blockquote>
           </div>
-        <%}else{%>
+
+        <% } else { %>
           <div id="rv-ok"  class="rv-alert rv-ok"  style="display:none"><i class="fas fa-check-circle"></i> Review submitted!</div>
           <div id="rv-err" class="rv-alert rv-err" style="display:none"></div>
-          <form id="reviewForm" data-id="<%=movie._id%>">
+
+          <form id="reviewForm" data-id="<%= movie._id %>">
             <div class="fg">
               <label>Rating</label>
               <div class="star-picker" id="sp">
-                <i class="fas fa-star sp" data-v="1"></i><i class="fas fa-star sp" data-v="2"></i>
-                <i class="fas fa-star sp" data-v="3"></i><i class="fas fa-star sp" data-v="4"></i>
+                <i class="fas fa-star sp" data-v="1"></i>
+                <i class="fas fa-star sp" data-v="2"></i>
+                <i class="fas fa-star sp" data-v="3"></i>
+                <i class="fas fa-star sp" data-v="4"></i>
                 <i class="fas fa-star sp" data-v="5"></i>
               </div>
               <input type="hidden" id="rval"/>
@@ -76,87 +110,127 @@
               <span id="btnSpin" style="display:none"><i class="fas fa-spinner fa-spin"></i> Submitting…</span>
             </button>
           </form>
-        <%}%>
+        <% } %>
       </div>
 
       <!-- Reviews List -->
       <div class="rlist-wrap">
         <div class="rlist-topbar">
-          <h2>Reviews <span class="cnt-badge" id="rcount"><%=reviews.length%></span></h2>
+          <h2>Reviews <span class="cnt-badge" id="rcount"><%= reviews.length %></span></h2>
           <div class="sort-tabs">
-            <button class="sort-tab active" data-sort="top" onclick="switchSort(this,'top')">
+            <button class="sort-tab <%= sortMode==='top'?'active':'' %>" onclick="switchSort(this,'top')">
               <i class="fas fa-trophy"></i> Top
             </button>
-            <button class="sort-tab" data-sort="new" onclick="switchSort(this,'new')">
+            <button class="sort-tab <%= sortMode==='new'?'active':'' %>" onclick="switchSort(this,'new')">
               <i class="fas fa-clock"></i> New
             </button>
           </div>
         </div>
-        <%if(!reviews.length){%>
-          <div class="empty-rv"><i class="fas fa-comments"></i><p>No reviews yet. Be the first!</p></div>
-        <%}else{%>
+
+        <% if(!reviews.length){ %>
+          <div class="empty-rv">
+            <i class="fas fa-comments"></i>
+            <p>No reviews yet. Be the first!</p>
+          </div>
+        <% } else { %>
           <div id="reviewsList">
-            <%reviews.forEach(r=>{%>
-              <div class="rcard <%=r.pinned?'pinned':''%>" data-id="<%=r._id%>">
-                <%if(r.pinned){%><div class="pin-tag"><i class="fas fa-thumbtack"></i> Pinned by Admin</div><%}%>
+            <% reviews.forEach(r=>{ %>
+              <div class="rcard <%= r.pinned?'pinned':'' %>">
+                <% if(r.pinned){ %>
+                  <div class="pin-tag"><i class="fas fa-thumbtack"></i> Pinned by Admin</div>
+                <% } %>
                 <div class="rcard-head">
                   <div class="rcard-left">
-                    <div class="rc-av"><%=r.userId&&r.userId.username?r.userId.username.charAt(0).toUpperCase():'?'%></div>
+                    <div class="rc-av">
+                      <%= r.userId && r.userId.username ? r.userId.username.charAt(0).toUpperCase() : '?' %>
+                    </div>
                     <div>
                       <div class="rc-name">
-                      <a href="/profile/<%=r.userId&&r.userId.username?r.userId.username:'#'%>" class="rc-name-link">
-                        <%=r.userId&&r.userId.username?r.userId.username:'Unknown'%>
-                      </a>
-                        <%if(r.userId&&r.userId.isVerified){%><i class="fas fa-circle-check vtick" title="Verified"></i><%}%>
-                        <%if(r.userId&&r.userId.isAdmin){%><span class="admin-tag">Admin</span><%}%>
+                        <% if(r.userId && r.userId.username){ %>
+                          <a href="/profile/<%= r.userId.username %>" class="rc-name-link">
+                            <%= r.userId.username %>
+                          </a>
+                        <% } else { %>
+                          <span>Unknown</span>
+                        <% } %>
+                        <% if(r.userId && r.userId.isVerified){ %>
+                          <i class="fas fa-circle-check vtick" title="Verified"></i>
+                        <% } %>
+                        <% if(r.userId && r.userId.isAdmin){ %>
+                          <span class="admin-tag">Admin</span>
+                        <% } %>
                       </div>
-                      <small><%=new Date(r.createdAt).toLocaleDateString('en-IN',{year:'numeric',month:'short',day:'numeric'})%></small>
+                      <small><%= new Date(r.createdAt).toLocaleDateString('en-IN',{year:'numeric',month:'short',day:'numeric'}) %></small>
                     </div>
                   </div>
                   <div class="rcard-right">
                     <div class="rc-stars">
-                      <%for(let i=1;i<=5;i++){%><i class="fas fa-star <%=i<=r.rating?'son':'soff'%>"></i><%}%>
-                      <span class="rbadge"><%=r.rating%>/5</span>
+                      <% for(let i=1;i<=5;i++){ %>
+                        <i class="fas fa-star <%= i<=r.rating?'son':'soff' %>"></i>
+                      <% } %>
+                      <span class="rbadge"><%= r.rating %>/5</span>
                     </div>
                   </div>
                 </div>
-                <p class="rc-comment"><%=r.comment%></p>
+
+                <p class="rc-comment"><%= r.comment %></p>
+
                 <div class="rc-actions">
-                  <button class="like-btn <%=r.userLiked?'liked':''%>" data-id="<%=r._id%>"
-                          onclick="likeReview(this)"
-                          <%=!user?'title="Login to like" onclick="window.location=\'/auth/login\'"':''%>>
-                    <i class="<%=r.userLiked?'fas':'far'%> fa-heart"></i>
-                    <span class="lcount"><%=r.likeCount||0%></span>
+                  <!-- Like button — single clean onclick, no duplicate attr -->
+                  <button class="like-btn <%= r.userLiked?'liked':'' %>"
+                          id="like-<%= r._id %>"
+                          data-id="<%= r._id %>">
+                    <i class="<%= r.userLiked?'fas':'far' %> fa-heart"></i>
+                    <span class="lcount"><%= r.likeCount||0 %></span>
                   </button>
-                  <%if(user&&r.userId&&!r.userId._id.equals?.(user._id?.toString())&&!r.isFollowing){%>
-                  <% const followerId = r.userId && r.userId._id ? r.userId._id.toString() : null; %>
-                  <% if(followerId && user && followerId !== user._id.toString()) { %>
-                    <button class="follow-btn" data-uid="<%=followerId%>" onclick="toggleFollow(this)">
-                      <i class="fas fa-user-plus"></i>
-                      <span><%=r.isFollowing?'Following':'Follow'%></span>
+
+                  <!-- Follow button — only show if logged in and not own review -->
+                  <% if(user && r.userId && r.userId._id && r.userId._id.toString() !== user._id.toString()){ %>
+                    <button class="follow-btn <%= r.isFollowing?'following':'' %>"
+                            id="follow-<%= r.userId._id %>"
+                            data-uid="<%= r.userId._id %>">
+                      <i class="fas <%= r.isFollowing?'fa-user-check':'fa-user-plus' %>"></i>
+                      <span><%= r.isFollowing?'Following':'Follow' %></span>
                     </button>
                   <% } %>
-                  <%}%>
-                  <%if(user&&user.isAdmin){%>
-                    <button class="pin-btn" data-id="<%=r._id%>" onclick="pinReview(this)"
-                            title="<%=r.pinned?'Unpin':'Pin'%>">
-                      <i class="fas fa-thumbtack <%=r.pinned?'pinned-icon':''%>"></i>
+
+                  <!-- Pin button — admin only -->
+                  <% if(user && user.isAdmin){ %>
+                    <button class="pin-btn" id="pin-<%= r._id %>"
+                            data-id="<%= r._id %>"
+                            title="<%= r.pinned?'Unpin':'Pin' %>">
+                      <i class="fas fa-thumbtack <%= r.pinned?'pinned-icon':'' %>"></i>
                     </button>
-                  <%}%>
+                  <% } %>
                 </div>
               </div>
-            <%})%>
+            <% }) %>
           </div>
-        <%}%>
+        <% } %>
       </div>
+
     </div>
   </div>
 </div>
 
 <script>
-  window._MOVIE_ID  = '<%=movie._id%>';
-  window._LOGGED_IN = <%=user?'true':'false'%>;
-  window._LOGIN_URL = '/auth/login?redirect=/movie/<%=movie._id%>';
-  window._IS_ADMIN  = <%=user&&user.isAdmin?'true':'false'%>;
+  window._MOVIE_ID  = '<%= movie._id %>';
+  window._LOGGED_IN = <%= user ? 'true' : 'false' %>;
+  window._LOGIN_URL = '/auth/login?redirect=/movie/<%= movie._id %>';
+  window._IS_ADMIN  = <%= user && user.isAdmin ? 'true' : 'false' %>;
+
+  // Attach like handlers after DOM ready
+  document.querySelectorAll('.like-btn').forEach(btn => {
+    btn.addEventListener('click', () => likeReview(btn));
+  });
+  // Attach follow handlers
+  document.querySelectorAll('.follow-btn').forEach(btn => {
+    btn.addEventListener('click', () => toggleFollow(btn));
+  });
+  // Attach pin handlers
+  document.querySelectorAll('.pin-btn').forEach(btn => {
+    btn.addEventListener('click', () => pinReview(btn));
+  });
 </script>
+
 <%- include('partials/footer') %>

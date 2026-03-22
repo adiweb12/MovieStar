@@ -221,6 +221,9 @@ function prependReview(r) {
     const nl   = Object.assign(document.createElement('div'), { id: 'reviewsList' });
     nl.appendChild(card); wrap?.appendChild(nl);
   }
+  // Attach event listener to the new like button
+  card.querySelector('.like-btn')?.addEventListener('click', function(){ likeReview(this); });
+  card.querySelector('.follow-btn')?.addEventListener('click', function(){ toggleFollow(this); });
 }
 
 // ── Like a review ──────────────────────────────────
