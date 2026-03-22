@@ -134,19 +134,17 @@ async function runSync() {
 // ── Scheduler ─────────────────────────────────────────────────────────────
 function start() {
   if (!process.env.MOVIE_BASE_URL) {
-    console.log('[MovieBaseSync] MOVIE_BASE_URL not set — sync disabled');
+    console.log('[MovieBaseSync] MOVIE_BASE_URL not set — scheduler disabled');
     return;
   }
 
-  // Run once immediately on startup
-  runSync().catch(e => console.error('[MovieBaseSync] Initial sync error:', e));
-
-  // Then every 3 hours
+  // NOTE: Initial sync is triggered by app.js inside mongoose.connection.once('open')
+  // This function only sets up the recurring interval.
   _timer = setInterval(() => {
     runSync().catch(e => console.error('[MovieBaseSync] Scheduled sync error:', e));
   }, INTERVAL);
 
-  console.log('[MovieBaseSync] ⏰ Scheduled every 3 hours');
+  console.log('[MovieBaseSync] ⏰ Recurring sync scheduled every 3 hours');
 }
 
 function stop() {

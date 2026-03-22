@@ -22,8 +22,11 @@ const app = express();
 // ── Connect DB ────────────────────────────────────
 connectDB();
 
-// ── Auto-create admin after DB connects ──────────
+// ── On DB ready: admin init + immediate movie sync ─
 mongoose.connection.once('open', async () => {
+  console.log('✅  MongoDB connected — running startup tasks…');
+
+  // 1. Ensure admin account exists
   try {
     const User      = require('./models/User');
     const adminName = process.env.ADMIN_USERNAME || 'Websinaro';
@@ -34,9 +37,22 @@ mongoose.connection.once('open', async () => {
       console.log(`✅  Admin created → login: ${adminName} / ${adminPass}`);
     } else if (!exists.isAdmin) {
       await User.updateOne({ username: adminName }, { isAdmin: true, isVerified: true });
-      console.log(`✅  Existing "${adminName}" promoted to admin`);
+      console.log(`✅  "${adminName}" promoted to admin`);
     }
-  } catch (e) { console.error('Admin init:', e.message); }
+  } catch (e) {
+    console.error('Admin init error:', e.message);
+  }
+
+  // 2. Immediately pull movies from movie_base on first connect
+  //    (runs in background — does NOT block the server from starting)
+  if (process.env.MOVIE_BASE_URL) {
+    console.log('🔄  Starting initial movie_base sync…');
+    movieBaseSync.runSync()
+      .then(() => console.log('✅  Initial movie_base sync complete'))
+      .catch(e => console.error('❌  Initial movie_base sync failed:', e.message));
+  } else {
+    console.log('ℹ️   MOVIE_BASE_URL not set — skipping movie_base sync');
+  }
 });
 
 // ── Trust reverse proxy (Render/Heroku) ──────────
@@ -76,7 +92,7 @@ app.use('/admin', adminRoutes);
 app.use((req, res) => res.status(404).render('404', { title: '404 – Not Found' }));
 app.use(errorHandler);
 
-// ── movie_base sync (only runs if MOVIE_BASE_URL is set) ──
+// ── Start recurring 3-hour sync scheduler ────────
 movieBaseSync.start();
 
 // ── Start server ──────────────────────────────────
