@@ -12,7 +12,7 @@ const loginRules = [
 const registerRules = [
   body('username').trim()
     .isLength({ min:3, max:20 }).withMessage('Username must be 3–20 characters')
-    .matches(/^[a-zA-Z0-9_]+$/).withMessage('Only letters, numbers and underscores'),
+    .matches(/^[a-zA-Z0-9_.]+$/).withMessage('Only letters, numbers, underscores and dots'),
   body('password').isLength({ min:6 }).withMessage('Password must be at least 6 characters'),
 ];
 

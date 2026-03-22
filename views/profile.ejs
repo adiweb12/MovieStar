@@ -62,6 +62,15 @@
           <i class="fas fa-calendar-alt"></i>
           Joined <%= new Date(profile.createdAt).toLocaleDateString('en-IN',{year:'numeric',month:'long'}) %>
         </div>
+
+        <% if(profile.isAdmin && isOwnProfile){ %>
+        <div class="admin-panel-btn-wrap">
+          <a href="/admin" class="btn btn-admin-panel btn-full">
+            <i class="fas fa-shield-halved"></i> Open Admin Panel
+          </a>
+          <p class="admin-panel-note"><i class="fas fa-lock"></i> Admin access only</p>
+        </div>
+        <% } %>
       </div>
 
       <!-- Followers preview -->

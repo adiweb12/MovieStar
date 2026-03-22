@@ -860,3 +860,38 @@ a.rc-name:hover { color: var(--red); }
 /* ── Nav active link ── */
 .nav-link.active { color: var(--txt); background: var(--border); }
 .sb-link.active   { background: var(--bg4); color: var(--txt); }
+
+/* ── Admin panel button on profile ── */
+.admin-panel-btn-wrap {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+.btn-admin-panel {
+  background: linear-gradient(135deg, #1a1a2e, #16213e);
+  border: 1.5px solid var(--gold);
+  color: var(--gold);
+  font-weight: 700;
+  letter-spacing: .3px;
+  transition: var(--ease);
+}
+.btn-admin-panel:hover {
+  background: linear-gradient(135deg, var(--gold), #e6a817);
+  color: #000;
+  box-shadow: 0 4px 20px rgba(245,197,24,.35);
+  transform: translateY(-1px);
+}
+.btn-admin-panel i { font-size: .9rem; }
+.admin-panel-note {
+  text-align: center;
+  font-size: .7rem;
+  color: var(--txt3);
+  margin-top: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+/* ── Username hint text fix ── */
+.iw input::placeholder { color: var(--txt3); }
