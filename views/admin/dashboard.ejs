@@ -4,82 +4,75 @@
   <div class="admin-main">
     <div class="admin-topbar">
       <h1><i class="fas fa-gauge-high"></i> Dashboard</h1>
-      <% if(req&&req.query&&req.query.success){%>
-        <div class="flash-ok"><i class="fas fa-check"></i> <%=req.query.success.replace(/\+/g,' ')%></div>
-      <%}%>
+      <% if(typeof success !== 'undefined' && success){ %>
+        <div class="flash-ok"><i class="fas fa-check"></i> <%= success %></div>
+      <% } %>
+      <% if(typeof error !== 'undefined' && error){ %>
+        <div class="flash-err"><i class="fas fa-times"></i> <%= error %></div>
+      <% } %>
     </div>
 
-    <!-- Stats cards -->
     <div class="stat-grid">
-      <div class="stat-card red"><i class="fas fa-film"></i><div><span><%=movieCount%></span><small>Movies</small></div></div>
-      <div class="stat-card blue"><i class="fas fa-users"></i><div><span><%=userCount%></span><small>Users</small></div></div>
-      <div class="stat-card green"><i class="fas fa-star"></i><div><span><%=reviewCount%></span><small>Reviews</small></div></div>
-      <div class="stat-card purple"><i class="fas fa-shield-halved"></i><div><span><%=blockedIPs.length%></span><small>Blocked IPs</small></div></div>
+      <div class="stat-card red"><i class="fas fa-film"></i><div><span><%= movieCount %></span><small>Movies</small></div></div>
+      <div class="stat-card blue"><i class="fas fa-users"></i><div><span><%= userCount %></span><small>Users</small></div></div>
+      <div class="stat-card green"><i class="fas fa-star"></i><div><span><%= reviewCount %></span><small>Reviews</small></div></div>
+      <div class="stat-card purple"><i class="fas fa-ban"></i><div><span><%= blockedIPs.length %></span><small>Blocked IPs</small></div></div>
     </div>
 
-    <!-- Announcement -->
     <div class="admin-section">
       <h2><i class="fas fa-bullhorn"></i> Announcement</h2>
       <form action="/admin/announcement" method="POST" class="aform-inline">
-        <textarea name="message" rows="3" placeholder="Pin a message to the homepage…" maxlength="500"><%=announcement?announcement.message:''%></textarea>
+        <textarea name="message" rows="3" placeholder="Pin a message to the homepage…" maxlength="500"><%= announcement ? announcement.message : '' %></textarea>
         <div class="aform-row">
           <label class="check-label">
-            <input type="checkbox" name="active" <%=announcement&&announcement.active?'checked':''%>> Active
+            <input type="checkbox" name="active" <%= announcement && announcement.active ? 'checked' : '' %>> Active
           </label>
           <button type="submit" class="btn btn-red"><i class="fas fa-save"></i> Save</button>
-          <% if(announcement){%>
-            <form action="/admin/announcement" method="POST" style="display:inline">
-              <input type="hidden" name="message" value=""/>
-              <button type="submit" class="btn btn-ghost">Clear</button>
-            </form>
-          <%}%>
         </div>
       </form>
     </div>
 
-    <!-- Blocked IPs -->
-    <% if(blockedIPs.length){%>
+    <% if(blockedIPs.length){ %>
     <div class="admin-section">
       <h2><i class="fas fa-ban"></i> Blocked IPs</h2>
       <div class="table-wrap">
         <table class="atable">
           <thead><tr><th>IP</th><th>Attempts</th><th>Blocked At</th><th>Expires</th><th>Action</th></tr></thead>
           <tbody>
-            <%blockedIPs.forEach(b=>{%>
-              <tr>
-                <td><%=b.ip%></td>
-                <td><%=b.attempts%></td>
-                <td><%=new Date(b.blockedAt).toLocaleString()%></td>
-                <td><%=b.expiresAt?new Date(b.expiresAt).toLocaleString():'Permanent'%></td>
-                <td>
-                  <form action="/admin/ip/unblock/<%=encodeURIComponent(b.ip)%>" method="POST" style="display:inline">
-                    <button class="btn-sm btn-ok">Unblock</button>
-                  </form>
-                </td>
-              </tr>
-            <%})%>
+            <% blockedIPs.forEach(b => { %>
+            <tr>
+              <td><%= b.ip %></td>
+              <td><%= b.attempts %></td>
+              <td><%= new Date(b.blockedAt).toLocaleString() %></td>
+              <td><%= b.expiresAt ? new Date(b.expiresAt).toLocaleString() : 'Permanent' %></td>
+              <td>
+                <form action="/admin/ip/unblock/<%= encodeURIComponent(b.ip) %>" method="POST">
+                  <button class="btn-sm btn-ok">Unblock</button>
+                </form>
+              </td>
+            </tr>
+            <% }) %>
           </tbody>
         </table>
       </div>
     </div>
-    <%}%>
+    <% } %>
 
-    <!-- Recent Logs -->
     <div class="admin-section">
       <h2><i class="fas fa-scroll"></i> Recent Logs <a href="/admin/logs" class="see-all-sm">View all</a></h2>
       <div class="table-wrap">
         <table class="atable">
           <thead><tr><th>Type</th><th>User</th><th>IP</th><th>Message</th><th>Time</th></tr></thead>
           <tbody>
-            <%logs.slice(0,20).forEach(l=>{%>
-              <tr class="log-<%=l.type%>">
-                <td><span class="log-badge log-<%=l.type%>"><%=l.type%></span></td>
-                <td><%=l.username||'–'%></td>
-                <td><%=l.ip||'–'%></td>
-                <td class="log-msg"><%=l.message||'–'%></td>
-                <td><small><%=new Date(l.createdAt).toLocaleString()%></small></td>
-              </tr>
-            <%})%>
+            <% logs.slice(0,20).forEach(l => { %>
+            <tr>
+              <td><span class="log-badge log-<%= l.type %>"><%= l.type %></span></td>
+              <td><%= l.username || '–' %></td>
+              <td><%= l.ip || '–' %></td>
+              <td class="log-msg"><%= l.message || '–' %></td>
+              <td><small><%= new Date(l.createdAt).toLocaleString() %></small></td>
+            </tr>
+            <% }) %>
           </tbody>
         </table>
       </div>

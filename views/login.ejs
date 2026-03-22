@@ -33,7 +33,7 @@
           <i class="fas fa-user"></i>
           <input type="text" id="unameInput" name="username" placeholder="Your username" required
             autocomplete="username"
-            <%=mode==='register'?'minlength="3" maxlength="20" pattern="[a-zA-Z0-9_.]+"':''%>/>
+            />
           <% if(mode==='register'){ %>
             <span id="unavail-ico" class="unav-ico" style="display:none"></span>
           <% } %>

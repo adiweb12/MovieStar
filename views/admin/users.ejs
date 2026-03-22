@@ -4,7 +4,7 @@
   <div class="admin-main">
     <div class="admin-topbar">
       <h1><i class="fas fa-users"></i> Manage Users</h1>
-      <%if(req.query.success){%><div class="flash-ok"><%=req.query.success.replace(/\+/g,' ')%></div><%}%>
+      <% if(typeof success !== 'undefined' && success){ %><div class="flash-ok"><i class="fas fa-check"></i> <%= success %></div><% } %>
     </div>
     <div class="admin-section">
       <h2><i class="fas fa-search"></i> Search by Username or Unique ID</h2>

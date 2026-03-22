@@ -4,8 +4,8 @@
   <div class="admin-main">
     <div class="admin-topbar">
       <h1><i class="fas fa-film"></i> Manage Movies</h1>
-      <%if(req.query.success){%><div class="flash-ok"><%=req.query.success.replace(/\+/g,' ')%></div><%}%>
-      <%if(req.query.error){%><div class="flash-err"><%=req.query.error.replace(/\+/g,' ')%></div><%}%>
+      <% if(typeof success !== 'undefined' && success){ %><div class="flash-ok"><i class="fas fa-check"></i> <%= success %></div><% } %>
+      <% if(typeof error !== 'undefined' && error){ %><div class="flash-err"><i class="fas fa-times"></i> <%= error %></div><% } %>
     </div>
 
     <!-- Add Movie Form -->
