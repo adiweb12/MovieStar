@@ -70,7 +70,7 @@
           <tbody>
             <%movies.forEach(m=>{%>
               <tr>
-                <td><img src="<%=m.image%>" alt="" class="thumb" onerror="this.src='/images/placeholder.svg'"/></td>
+                <td><img src="<%= (()=>{ const u=m.image; return (!u||u.startsWith('/'))?u||'/images/placeholder.svg':u.includes('cloudinary.com')?u:u.includes('wikimedia.org')||u.includes('wikipedia.org')?'/img-proxy?url='+encodeURIComponent(u):u; })() %>" alt="" class="thumb" onerror="this.src='/images/placeholder.svg'"/></td>
                 <td><a href="/movie/<%=m._id%>" class="tlink"><%=m.title%></a></td>
                 <td><%=m.language%></td>
                 <td><span class="tbadge tbadge-<%=m.type%>"><%=m.type%></span></td>

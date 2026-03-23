@@ -15,7 +15,8 @@ const authRoutes    = require('./routes/auth');
 const apiRoutes     = require('./routes/api');
 const adminRoutes   = require('./routes/admin');
 const errorHandler  = require('./middleware/errorHandler');
-const movieBaseSync = require('./services/movieBaseSync');
+const movieBaseSync  = require('./services/movieBaseSync');
+const imageProxy     = require('./routes/imageProxy');
 
 const app = express();
 
@@ -83,6 +84,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 if (process.env.NODE_ENV !== 'production') app.use(morgan('dev'));
 
 // ── Routes ────────────────────────────────────────
+app.use('/img-proxy', imageProxy);
 app.use('/',      webRoutes);
 app.use('/auth',  authRoutes);
 app.use('/api',   apiRoutes);

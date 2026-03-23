@@ -4,22 +4,55 @@ const Announcement = require('../models/Announcement');
 
 exports.homepage = async (req, res, next) => {
   try {
-    const [trending, malayalam, tamil, telugu, kannada, recentlyReleased, upcoming, announcement] =
+    // "Latest" = released movies sorted by releaseDate desc (most recent first)
+    // "Upcoming" = future release date OR type=upcoming
+    // A movie from movie_base may have type="released" but releaseDate in the future
+    // so we catch upcoming by BOTH type field AND future release date
+
+    const now = new Date();
+
+    const [trending, malayalam, tamil, telugu, kannada, latest, upcoming, announcement] =
       await Promise.all([
-        Movie.find({ type: 'trending' }).sort('-releaseDate').limit(12),
-        Movie.find({ language: /malayalam/i, type: { $ne: 'upcoming' } }).sort('-releaseDate').limit(12),
-        Movie.find({ language: /tamil/i,     type: { $ne: 'upcoming' } }).sort('-releaseDate').limit(12),
-        Movie.find({ language: /telugu/i,    type: { $ne: 'upcoming' } }).sort('-releaseDate').limit(12),
-        Movie.find({ language: /kannada/i,   type: { $ne: 'upcoming' } }).sort('-releaseDate').limit(12),
-        Movie.find({ type: 'released' }).sort('-releaseDate').limit(12),
-        Movie.find({ type: 'upcoming' }).sort('releaseDate').limit(12),
+        // Trending: any type marked trending
+        Movie.find({ type: 'trending' })
+          .sort('-releaseDate').limit(16),
+
+        // Language shelves: released + trending, sorted newest first
+        Movie.find({ language: /malayalam/i, type: { $ne: 'upcoming' } })
+          .sort('-releaseDate').limit(16),
+        Movie.find({ language: /tamil/i,     type: { $ne: 'upcoming' } })
+          .sort('-releaseDate').limit(16),
+        Movie.find({ language: /telugu/i,    type: { $ne: 'upcoming' } })
+          .sort('-releaseDate').limit(16),
+        Movie.find({ language: /kannada/i,   type: { $ne: 'upcoming' } })
+          .sort('-releaseDate').limit(16),
+
+        // Latest released: released OR trending, sorted by release date desc
+        Movie.find({
+          type: { $in: ['released', 'trending'] },
+        }).sort('-releaseDate').limit(16),
+
+        // Upcoming: type=upcoming OR release date is in the future
+        Movie.find({
+          $or: [
+            { type: 'upcoming' },
+            { releaseDate: { $gt: now } },
+          ]
+        }).sort('releaseDate').limit(16),
+
         Announcement.findOne({ active: true }).sort('-createdAt'),
       ]);
 
     res.render('index', {
       title: 'MovieStar – South Indian Cinema',
-      user: req.user || null,
-      trending, malayalam, tamil, telugu, kannada, recentlyReleased, upcoming,
+      user:  req.user || null,
+      trending,
+      malayalam,
+      tamil,
+      telugu,
+      kannada,
+      recentlyReleased: latest,
+      upcoming,
       announcement: announcement || null,
     });
   } catch (err) { next(err); }
@@ -30,8 +63,6 @@ exports.movieDetail = async (req, res, next) => {
     const movie = await Movie.findById(req.params.id);
     if (!movie) return res.status(404).render('404', { title: '404' });
 
-    // "top" sort: pinned > verified reviewer > most liked > newest
-    // "new" sort: pinned > newest
     const sortMode = req.query.sort === 'new' ? 'new' : 'top';
     const sortObj  = sortMode === 'new'
       ? { pinned: -1, createdAt: -1 }
@@ -46,19 +77,18 @@ exports.movieDetail = async (req, res, next) => {
       ? await Review.findOne({ movieId: movie._id, userId: req.user._id })
       : null;
 
-    // For each review, check if current user liked it / is following author
     const enriched = reviews.map(r => {
-      const obj      = r.toObject();
-      obj.userLiked  = req.user ? r.likes.some(id => id.equals(req.user._id)) : false;
-      obj.isFollowing= req.user && r.userId
+      const obj       = r.toObject();
+      obj.userLiked   = req.user ? r.likes.some(id => id.equals(req.user._id)) : false;
+      obj.isFollowing = req.user && r.userId
         ? req.user.following?.some(id => id.equals(r.userId._id))
         : false;
       return obj;
     });
 
     res.render('movie', {
-      title: `${movie.title} – MovieStar`,
-      user: req.user || null,
+      title:    `${movie.title} – MovieStar`,
+      user:     req.user || null,
       movie, reviews: enriched, userReview, sortMode,
     });
   } catch (err) { next(err); }

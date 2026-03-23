@@ -109,7 +109,7 @@
             <% if(!r.movieId) return; %>
             <div class="pfeed-card">
               <a href="/movie/<%= r.movieId._id %>" class="pfeed-movie">
-                <img src="<%= r.movieId.image %>" alt="<%= r.movieId.title %>"
+                <img src="<%= (() => { const u = r.movieId.image; return (!u||u.startsWith('/'))?u||'/images/placeholder.svg':u.includes('cloudinary.com')?u:u.includes('wikimedia.org')||u.includes('wikipedia.org')?'/img-proxy?url='+encodeURIComponent(u):u; })() %>" alt="<%= r.movieId.title %>"
                      onerror="this.onerror=null;this.src='/images/placeholder.svg'"/>
                 <div class="pfeed-movie-info">
                   <strong><%= r.movieId.title %></strong>

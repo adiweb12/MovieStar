@@ -1,15 +1,25 @@
 <%- include('partials/header') %>
+<%
+function imgSrc(url) {
+  if (!url) return '/images/placeholder.svg';
+  if (url.startsWith('/')) return url;
+  if (url.includes('cloudinary.com')) return url;
+  if (url.includes('wikimedia.org') || url.includes('wikipedia.org'))
+    return '/img-proxy?url=' + encodeURIComponent(url);
+  return url;
+}
+%>
 <div class="detail-page">
 
   <!-- Backdrop -->
-  <div class="backdrop" style="background-image:url('<%= movie.image %>')">
+  <div class="backdrop" style="background-image:url('<%= imgSrc(movie.image) %>')">
     <div class="bfade"></div>
   </div>
 
   <!-- Movie Hero -->
   <div class="dhero">
     <div class="dposter-wrap">
-      <img src="<%= movie.image %>" alt="<%= movie.title %>" class="dposter"
+      <img src="<%= imgSrc(movie.image) %>" alt="<%= movie.title %>" class="dposter"
            onerror="this.onerror=null;this.src='/images/placeholder.svg'"/>
       <% if(movie.type==='upcoming'){ %><span class="badge bpurple badge-lg">Coming Soon</span><% } %>
       <% if(movie.type==='trending'){  %><span class="badge bred badge-lg">🔥 Trending</span><% } %>
