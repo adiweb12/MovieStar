@@ -1,34 +1,35 @@
 /**
  * services/movieBaseSync.js
- * ─────────────────────────
- * Pulls movies from movie_base microservice and upserts into MongoDB.
- * Handles Render free-tier cold starts (up to 60s wake time).
+ * Pulls movies from movie_base. On first run if DB is empty,
+ * triggers movie_base scraper and waits for it to populate.
  */
 
 const https  = require('https');
 const http   = require('http');
 const Movie  = require('../models/Movie');
 
-const BASE_URL  = process.env.MOVIE_BASE_URL  || '';
+const BASE_URL  = (process.env.MOVIE_BASE_URL || '').replace(/\/+$/, '');
 const API_KEY   = process.env.MOVIE_BASE_KEY  || '';
 const PAGE_SIZE = 100;
 const INTERVAL  = 3 * 60 * 60 * 1000;  // 3 hours
 
-// Render free tier can take up to 60s to wake — use generous timeout
-const TIMEOUT_MS       = 90 * 1000;   // 90 seconds per request
-const WAKE_RETRIES     = 5;           // retry health check this many times
-const WAKE_RETRY_DELAY = 15 * 1000;   // 15 seconds between retries
+const TIMEOUT_MS   = 90 * 1000;
+const WAKE_RETRIES = 6;
+const WAKE_DELAY   = 15 * 1000;
+
+// Scraper can take up to 10 min — poll every 30s for up to 15 min
+const SCRAPE_POLL_INTERVAL = 30 * 1000;
+const SCRAPE_POLL_MAX      = 30;   // 30 × 30s = 15 minutes
 
 let _timer = null;
 
-// ── HTTP helper ───────────────────────────────────────────────────────────
+// ── HTTP helpers ──────────────────────────────────────────────────────────
 function fetchJSON(url, headers = {}, timeoutMs = TIMEOUT_MS) {
   return new Promise((resolve, reject) => {
-    const proto   = url.startsWith('https') ? https : http;
-    const options = { headers };
-    const req     = proto.get(url, options, (res) => {
+    const proto = url.startsWith('https') ? https : http;
+    const req   = proto.get(url, { headers }, (res) => {
       let data = '';
-      res.on('data', chunk => (data += chunk));
+      res.on('data', c => (data += c));
       res.on('end', () => {
         if (res.statusCode === 403)
           return reject(new Error('Unauthorized — check MOVIE_BASE_KEY'));
@@ -41,66 +42,115 @@ function fetchJSON(url, headers = {}, timeoutMs = TIMEOUT_MS) {
     req.on('error', reject);
     req.setTimeout(timeoutMs, () => {
       req.destroy();
-      reject(new Error(`Request timeout after ${timeoutMs / 1000}s`));
+      reject(new Error(`Timeout after ${timeoutMs / 1000}s`));
     });
   });
 }
 
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+function postJSON(url, headers = {}) {
+  return new Promise((resolve, reject) => {
+    const proto   = url.startsWith('https') ? https : http;
+    const urlObj  = new URL(url);
+    const options = {
+      hostname: urlObj.hostname,
+      port:     urlObj.port || (url.startsWith('https') ? 443 : 80),
+      path:     urlObj.pathname + urlObj.search,
+      method:   'POST',
+      headers:  { 'Content-Length': 0, ...headers },
+    };
+    const req = proto.request(options, (res) => {
+      let data = '';
+      res.on('data', c => (data += c));
+      res.on('end', () => {
+        if (res.statusCode === 403) return reject(new Error('Unauthorized'));
+        try   { resolve(JSON.parse(data)); }
+        catch { resolve({ status: 'ok' }); }
+      });
+    });
+    req.on('error', reject);
+    req.setTimeout(TIMEOUT_MS, () => { req.destroy(); reject(new Error('Timeout')); });
+    req.end();
+  });
 }
 
-// ── Wake up Render free-tier service ─────────────────────────────────────
-async function waitForService() {
-  console.log(`[MovieBaseSync] 🔔 Waking up movie_base at ${BASE_URL}…`);
+function sleep(ms) {
+  return new Promise(r => setTimeout(r, ms));
+}
 
+// ── Wake up Render free-tier ──────────────────────────────────────────────
+async function waitForService() {
+  console.log(`[MovieBaseSync] 🔔 Waking up movie_base…`);
   for (let i = 1; i <= WAKE_RETRIES; i++) {
     try {
-      const health = await fetchJSON(`${BASE_URL}/health`, {}, TIMEOUT_MS);
+      const health = await fetchJSON(`${BASE_URL}/health`, {});
       if (health.status === 'ok') {
-        console.log(`[MovieBaseSync] ✅ movie_base is awake (attempt ${i})`);
+        console.log(`[MovieBaseSync] ✅ movie_base awake (attempt ${i})`);
         return true;
       }
-      console.warn(`[MovieBaseSync] ⚠️  Health not ok: ${JSON.stringify(health)}`);
     } catch (e) {
-      console.log(`[MovieBaseSync] 💤 movie_base not ready (attempt ${i}/${WAKE_RETRIES}): ${e.message}`);
+      console.log(`[MovieBaseSync] 💤 Not ready (${i}/${WAKE_RETRIES}): ${e.message}`);
     }
-
-    if (i < WAKE_RETRIES) {
-      console.log(`[MovieBaseSync] ⏳ Waiting ${WAKE_RETRY_DELAY / 1000}s before retry…`);
-      await sleep(WAKE_RETRY_DELAY);
-    }
+    if (i < WAKE_RETRIES) await sleep(WAKE_DELAY);
   }
-
-  console.error(`[MovieBaseSync] ❌ movie_base did not respond after ${WAKE_RETRIES} attempts`);
+  console.error(`[MovieBaseSync] ❌ movie_base unreachable after ${WAKE_RETRIES} attempts`);
   return false;
 }
 
-// ── Fetch one page of movies ──────────────────────────────────────────────
-async function fetchPage(skip, limit = PAGE_SIZE) {
-  const url = `${BASE_URL}/movies?skip=${skip}&limit=${limit}`;
-  return fetchJSON(url, { access_token: API_KEY });
+// ── Trigger scraper on movie_base + wait for data ─────────────────────────
+async function triggerAndWaitForScrape() {
+  console.log(`[MovieBaseSync] 🕷️  movie_base DB is empty — triggering scraper…`);
+
+  try {
+    const result = await postJSON(
+      `${BASE_URL}/sync?skip_posters=true`,  // skip posters for speed
+      { access_token: API_KEY }
+    );
+    console.log(`[MovieBaseSync] 🕷️  Scraper triggered: ${JSON.stringify(result)}`);
+  } catch (e) {
+    console.warn(`[MovieBaseSync] ⚠️  Trigger failed: ${e.message}`);
+  }
+
+  // Poll until movies appear in movie_base
+  console.log(`[MovieBaseSync] ⏳ Waiting for scraper to populate data…`);
+  for (let i = 1; i <= SCRAPE_POLL_MAX; i++) {
+    await sleep(SCRAPE_POLL_INTERVAL);
+    try {
+      const count = await fetchJSON(
+        `${BASE_URL}/movies/count`,
+        { access_token: API_KEY }
+      );
+      const n = count.count || 0;
+      console.log(`[MovieBaseSync] 📊 movie_base has ${n} movies (poll ${i}/${SCRAPE_POLL_MAX})`);
+      if (n > 0) {
+        console.log(`[MovieBaseSync] ✅ Data ready — proceeding to pull`);
+        return true;
+      }
+    } catch (e) {
+      console.log(`[MovieBaseSync] ⏳ Poll ${i} failed: ${e.message}`);
+    }
+  }
+  console.warn(`[MovieBaseSync] ⚠️  Scraper still empty after ${SCRAPE_POLL_MAX} polls — pulling anyway`);
+  return false;
 }
 
-// ── Upsert one movie into MongoDB ─────────────────────────────────────────
+// ── Upsert one movie ──────────────────────────────────────────────────────
 async function upsertMovie(data) {
-  const doc = {
-    _movieBaseId:  data.id,
-    title:         data.title,
-    language:      data.language,
-    type:          data.release_type || 'released',
-    releaseDate:   data.release_date ? new Date(data.release_date) : null,
-    description:   data.description  || '',
-    director:      data.director     || '',
-    cast:  data.cast  ? data.cast.split(',').map(s => s.trim()).filter(Boolean)  : [],
-    genre: data.genre ? data.genre.split(',').map(s => s.trim()).filter(Boolean) : [],
-    // Cloudinary URL from movie_base — or raw poster URL if Cloudinary not set up
-    image: data.poster || null,
-  };
-
   await Movie.findOneAndUpdate(
     { _movieBaseId: data.id },
-    { $set: doc },
+    {
+      $set: {
+        _movieBaseId: data.id,
+        title:       data.title,
+        language:    data.language,
+        type:        data.release_type || 'released',
+        releaseDate: data.release_date ? new Date(data.release_date) : null,
+        description: data.description  || '',
+        director:    data.director     || '',
+        cast:  data.cast  ? data.cast.split(',').map(s => s.trim()).filter(Boolean)  : [],
+        genre: data.genre ? data.genre.split(',').map(s => s.trim()).filter(Boolean) : [],
+        image: data.poster || null,
+      },
+    },
     { upsert: true, new: true, setDefaultsOnInsert: true }
   );
 }
@@ -108,27 +158,45 @@ async function upsertMovie(data) {
 // ── Main sync ─────────────────────────────────────────────────────────────
 async function runSync() {
   if (!BASE_URL) {
-    console.log('[MovieBaseSync] MOVIE_BASE_URL not set — skipping sync');
+    console.log('[MovieBaseSync] MOVIE_BASE_URL not set — skipping');
     return;
   }
 
   const start = Date.now();
-  console.log(`[MovieBaseSync] 🔄 Sync starting from ${BASE_URL}`);
+  console.log(`[MovieBaseSync] 🔄 Sync from ${BASE_URL}`);
 
-  // Wake up Render free-tier service first
+  // 1. Wake up service
   const alive = await waitForService();
   if (!alive) return;
 
-  let skip     = 0;
-  let total    = 0;
-  let upserted = 0;
-  let failed   = 0;
+  // 2. Check if movie_base has any data
+  let movieBaseCount = 0;
+  try {
+    const countRes = await fetchJSON(
+      `${BASE_URL}/movies/count`,
+      { access_token: API_KEY }
+    );
+    movieBaseCount = countRes.count || 0;
+    console.log(`[MovieBaseSync] 📊 movie_base has ${movieBaseCount} movies`);
+  } catch (e) {
+    console.warn(`[MovieBaseSync] ⚠️  Count check failed: ${e.message}`);
+  }
 
-  // Paginate all movies
+  // 3. If empty, trigger scraper and wait
+  if (movieBaseCount === 0) {
+    await triggerAndWaitForScrape();
+  }
+
+  // 4. Pull all pages
+  let skip = 0, total = 0, upserted = 0, failed = 0;
+
   while (true) {
     let page;
     try {
-      page = await fetchPage(skip);
+      page = await fetchJSON(
+        `${BASE_URL}/movies?skip=${skip}&limit=${PAGE_SIZE}`,
+        { access_token: API_KEY }
+      );
     } catch (e) {
       console.error(`[MovieBaseSync] ❌ Fetch failed at skip=${skip}: ${e.message}`);
       break;
@@ -137,25 +205,22 @@ async function runSync() {
     if (!Array.isArray(page) || page.length === 0) break;
 
     for (const movie of page) {
-      try {
-        await upsertMovie(movie);
-        upserted++;
-      } catch (e) {
-        console.warn(`[MovieBaseSync] ⚠️  Upsert failed "${movie.title}": ${e.message}`);
+      try { await upsertMovie(movie); upserted++; }
+      catch (e) {
+        console.warn(`[MovieBaseSync] ⚠️  "${movie.title}": ${e.message}`);
         failed++;
       }
     }
 
     total += page.length;
     skip  += PAGE_SIZE;
-    console.log(`[MovieBaseSync]   ↳ fetched ${total} so far…`);
-
+    console.log(`[MovieBaseSync]   ↳ fetched ${total} movies so far…`);
     if (page.length < PAGE_SIZE) break;
   }
 
   const ms = Date.now() - start;
   console.log(
-    `[MovieBaseSync] ✅ Done in ${(ms / 1000).toFixed(1)}s | ` +
+    `[MovieBaseSync] ✅ Done in ${(ms/1000).toFixed(1)}s | ` +
     `fetched=${total} upserted=${upserted} failed=${failed}`
   );
 }
@@ -163,16 +228,12 @@ async function runSync() {
 // ── Scheduler ─────────────────────────────────────────────────────────────
 function start() {
   if (!BASE_URL) {
-    console.log('[MovieBaseSync] MOVIE_BASE_URL not set — scheduler disabled');
+    console.log('[MovieBaseSync] MOVIE_BASE_URL not set — disabled');
     return;
   }
-
-  // NOTE: startup sync is handled by app.js inside mongoose.connection.once('open')
-  // This only sets up the recurring interval.
   _timer = setInterval(() => {
-    runSync().catch(e => console.error('[MovieBaseSync] Interval sync error:', e.message));
+    runSync().catch(e => console.error('[MovieBaseSync] Interval error:', e.message));
   }, INTERVAL);
-
   console.log('[MovieBaseSync] ⏰ Recurring sync every 3 hours');
 }
 
