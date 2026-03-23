@@ -1,9 +1,8 @@
 /**
  * routes/imageProxy.js
- * Proxies external images (Wikimedia) that require a Referer header.
- * Usage: <img src="/img-proxy?url=https://upload.wikimedia.org/...">
- *
- * Also handles Cloudinary URLs directly (no proxy needed, but included for safety).
+ * Fallback proxy for any Wikimedia images not yet uploaded to Cloudinary.
+ * After sync runs, most images will be Cloudinary URLs — this proxy
+ * handles the few that still point to Wikimedia during the transition period.
  */
 
 const express = require('express');
@@ -11,64 +10,62 @@ const https   = require('https');
 const http    = require('http');
 const router  = express.Router();
 
-// Cache control — browser caches for 7 days
-const CACHE_SECONDS = 7 * 24 * 60 * 60;
-
 router.get('/', (req, res) => {
   const url = req.query.url;
+  if (!url) return res.status(400).end();
 
-  if (!url) return res.status(400).send('Missing url param');
+  // Validate URL
+  let parsed;
+  try { parsed = new URL(url); }
+  catch { return res.status(400).end(); }
 
-  // Only proxy known safe domains
-  const allowed = [
-    'upload.wikimedia.org',
-    'commons.wikimedia.org',
-    'en.wikipedia.org',
-    'res.cloudinary.com',
-    'via.placeholder.com',
-  ];
-  try {
-    const { hostname } = new URL(url);
-    if (!allowed.some(d => hostname.endsWith(d))) {
-      return res.redirect(url); // unknown domain — redirect directly
-    }
-  } catch {
-    return res.status(400).send('Invalid URL');
+  const allowed = ['upload.wikimedia.org', 'commons.wikimedia.org',
+                   'en.wikipedia.org', 'res.cloudinary.com'];
+  if (!allowed.some(d => parsed.hostname.endsWith(d))) {
+    return res.redirect(302, url);
   }
 
-  const proto = url.startsWith('https') ? https : http;
-  const reqOptions = {
+  const proto   = url.startsWith('https') ? https : http;
+  let responded = false;
+
+  const proxyReq = proto.get(url, {
     headers: {
       'User-Agent': 'Mozilla/5.0 (compatible; MovieStar/1.0)',
       'Referer':    'https://en.wikipedia.org/',
-      'Accept':     'image/webp,image/apng,image/*,*/*;q=0.8',
+      'Accept':     'image/*',
     },
-  };
+  }, (proxyRes) => {
+    if (responded) return;
 
-  const proxyReq = proto.get(url, reqOptions, (proxyRes) => {
     if (proxyRes.statusCode === 301 || proxyRes.statusCode === 302) {
-      // Follow redirect
-      return res.redirect(proxyRes.headers.location);
+      responded = true;
+      return res.redirect(302, proxyRes.headers.location);
     }
+
+    if (proxyRes.statusCode === 429) {
+      responded = true;
+      // Return placeholder instead of 429 error
+      return res.redirect(302, '/images/placeholder.svg');
+    }
+
     if (proxyRes.statusCode !== 200) {
-      return res.status(proxyRes.statusCode).send('Image fetch failed');
+      responded = true;
+      return res.redirect(302, '/images/placeholder.svg');
     }
 
+    responded = true;
     res.setHeader('Content-Type', proxyRes.headers['content-type'] || 'image/jpeg');
-    res.setHeader('Cache-Control', `public, max-age=${CACHE_SECONDS}`);
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-
+    res.setHeader('Cache-Control', 'public, max-age=604800'); // 7 days
     proxyRes.pipe(res);
   });
 
-  proxyReq.on('error', (err) => {
-    console.error('[ImageProxy] Error:', err.message, url.slice(0, 80));
-    res.status(502).send('Proxy error');
+  proxyReq.on('error', () => {
+    if (!responded) { responded = true; res.redirect(302, '/images/placeholder.svg'); }
   });
 
-  proxyReq.setTimeout(10000, () => {
+  proxyReq.setTimeout(12000, () => {
     proxyReq.destroy();
-    res.status(504).send('Timeout');
+    if (!responded) { responded = true; res.redirect(302, '/images/placeholder.svg'); }
   });
 });
 
