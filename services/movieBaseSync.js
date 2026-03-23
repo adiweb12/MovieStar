@@ -198,17 +198,22 @@ async function runSync() {
       return;
     }
 
-    // Clean up any actor/person records that slipped through the scraper
+    // Clean up actor/person records
     try {
-      const cr = await POST(
-        `${BASE_URL}/cleanup/actors`,
-        { access_token: API_KEY },
-        30000
-      );
+      const cr = await POST(`${BASE_URL}/cleanup/actors`, { access_token: API_KEY }, 30000);
       if (cr.status === 200)
-        console.log(`[MovieBaseSync] 🧹 Cleanup: removed ${cr.body.deleted} non-film records`);
+        console.log(`[MovieBaseSync] 🧹 Actors cleanup: removed ${cr.body.deleted} non-film records`);
     } catch (e) {
-      console.warn(`[MovieBaseSync] ⚠️  Cleanup failed: ${e.message}`);
+      console.warn(`[MovieBaseSync] ⚠️  Actor cleanup failed: ${e.message}`);
+    }
+
+    // Clean up movies older than Dec 2025
+    try {
+      const or2 = await POST(`${BASE_URL}/cleanup/old`, { access_token: API_KEY }, 30000);
+      if (or2.status === 200)
+        console.log(`[MovieBaseSync] 🧹 Old movies cleanup: removed ${or2.body.deleted} records`);
+    } catch (e) {
+      console.warn(`[MovieBaseSync] ⚠️  Old cleanup failed: ${e.message}`);
     }
   }
 
