@@ -1,7 +1,8 @@
 /**
  * services/movieBaseSync.js
- * Pulls movies from movie_base.
- * Uses /sync/now (synchronous per-language) to avoid Render killing background tasks.
+ * Phase 1: /sync/now per language → fast title scrape (no individual page visits)
+ * Phase 2: Pull movies into MongoDB
+ * Phase 3: /sync/details in batches → enrich descriptions/posters (background, non-blocking)
  */
 
 const https  = require('https');
@@ -11,19 +12,18 @@ const Movie  = require('../models/Movie');
 const BASE_URL  = (process.env.MOVIE_BASE_URL || '').replace(/\/+$/, '');
 const API_KEY   = process.env.MOVIE_BASE_KEY  || '';
 const PAGE_SIZE = 100;
-const INTERVAL  = 3 * 60 * 60 * 1000;  // 3 hours
+const INTERVAL  = 3 * 60 * 60 * 1000;
 
-const WAKE_RETRIES = 6;
-const WAKE_DELAY   = 15 * 1000;
-
-// /sync/now can take up to 5 min per language on first run
-const SYNC_TIMEOUT = 8 * 60 * 1000;  // 8 minutes
+const WAKE_RETRIES  = 6;
+const WAKE_DELAY    = 15 * 1000;
+const SYNC_TIMEOUT  = 5 * 60 * 1000;   // 5 min per language (no detail fetching = fast)
+const DETAIL_BATCH  = 20;              // enrich 20 movies at a time
 
 const LANGUAGES = ['Malayalam', 'Tamil', 'Telugu', 'Kannada', 'Hindi'];
 
 let _timer = null;
 
-// ── HTTP helpers ──────────────────────────────────────────────────────────
+// ── HTTP ──────────────────────────────────────────────────────────────────
 function request(method, url, headers = {}, timeoutMs = 30000) {
   return new Promise((resolve, reject) => {
     const proto  = url.startsWith('https') ? https : http;
@@ -54,90 +54,67 @@ function request(method, url, headers = {}, timeoutMs = 30000) {
   });
 }
 
-const GET  = (url, headers, ms) => request('GET',  url, headers, ms);
-const POST = (url, headers, ms) => request('POST', url, headers, ms);
+const GET  = (url, h, ms) => request('GET',  url, h, ms);
+const POST = (url, h, ms) => request('POST', url, h, ms);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
-
-// ── Wake up Render free-tier ──────────────────────────────────────────────
+// ── Wake service ──────────────────────────────────────────────────────────
 async function waitForService() {
-  console.log(`[MovieBaseSync] 🔔 Waking up movie_base…`);
+  console.log(`[MovieBaseSync] 🔔 Waking movie_base…`);
   for (let i = 1; i <= WAKE_RETRIES; i++) {
     try {
       const r = await GET(`${BASE_URL}/health`, {}, 30000);
       if (r.status === 200 && r.body.status === 'ok') {
-        console.log(`[MovieBaseSync] ✅ movie_base awake (attempt ${i})`);
+        console.log(`[MovieBaseSync] ✅ Awake (attempt ${i})`);
         return true;
       }
     } catch (e) {
-      console.log(`[MovieBaseSync] 💤 Not ready (${i}/${WAKE_RETRIES}): ${e.message}`);
+      console.log(`[MovieBaseSync] 💤 (${i}/${WAKE_RETRIES}): ${e.message}`);
     }
-    if (i < WAKE_RETRIES) {
-      console.log(`[MovieBaseSync] ⏳ Waiting 15s…`);
-      await sleep(WAKE_DELAY);
-    }
+    if (i < WAKE_RETRIES) { console.log(`[MovieBaseSync] ⏳ 15s…`); await sleep(WAKE_DELAY); }
   }
-  console.error(`[MovieBaseSync] ❌ movie_base unreachable`);
+  console.error(`[MovieBaseSync] ❌ Unreachable`);
   return false;
 }
 
-// ── Trigger sync/now for one language (SYNCHRONOUS — waits for result) ───
-async function scrapeLanguage(language) {
+// ── Phase 1: Fast title scrape per language ───────────────────────────────
+async function scrapeTitles(language) {
+  // fetch_details=false → just list pages, no individual movie pages = very fast
   const url = `${BASE_URL}/sync/now?language=${encodeURIComponent(language)}&max_movies=500&skip_posters=true`;
-  console.log(`[MovieBaseSync] 🕷️  Scraping ${language}…`);
+  console.log(`[MovieBaseSync] 🕷️  Fast-scraping ${language} titles…`);
   try {
     const r = await POST(url, { access_token: API_KEY }, SYNC_TIMEOUT);
     if (r.status === 200) {
       const b = r.body;
-      console.log(`[MovieBaseSync] ✅ ${language}: scraped=${b.scraped_raw} saved=${b.saved} time=${b.elapsed_sec}s`);
-      if (b.errors && b.errors.length > 0)
-        console.warn(`[MovieBaseSync] ⚠️  Errors: ${b.errors.slice(0,3).join(', ')}`);
+      console.log(`[MovieBaseSync] ✅ ${language}: raw=${b.scraped_raw} saved=${b.saved} (${b.elapsed_sec}s)`);
       return b.saved || 0;
-    } else {
-      console.warn(`[MovieBaseSync] ⚠️  ${language} returned HTTP ${r.status}: ${JSON.stringify(r.body).slice(0,200)}`);
-      return 0;
     }
+    console.warn(`[MovieBaseSync] ⚠️  ${language} HTTP ${r.status}: ${JSON.stringify(r.body).slice(0,150)}`);
+    return 0;
   } catch (e) {
-    console.error(`[MovieBaseSync] ❌ ${language} scrape failed: ${e.message}`);
+    console.error(`[MovieBaseSync] ❌ ${language}: ${e.message}`);
     return 0;
   }
 }
 
-// ── Get count from movie_base ─────────────────────────────────────────────
-async function getMovieBaseCount() {
-  try {
-    const r = await GET(`${BASE_URL}/movies/count`, { access_token: API_KEY }, 30000);
-    return r.body.count || 0;
-  } catch { return 0; }
-}
-
-// ── Pull all movies from movie_base into MongoDB ──────────────────────────
+// ── Phase 2: Pull movies into MongoDB ─────────────────────────────────────
 async function pullMovies() {
   let skip = 0, total = 0, upserted = 0, failed = 0;
-
   while (true) {
-    let page;
+    let r;
     try {
-      const r = await GET(
-        `${BASE_URL}/movies?skip=${skip}&limit=${PAGE_SIZE}`,
-        { access_token: API_KEY },
-        60000
-      );
-      if (r.status !== 200) { console.error(`[MovieBaseSync] ❌ /movies returned ${r.status}`); break; }
-      page = r.body;
-    } catch (e) {
-      console.error(`[MovieBaseSync] ❌ Fetch failed at skip=${skip}: ${e.message}`);
-      break;
-    }
+      r = await GET(`${BASE_URL}/movies?skip=${skip}&limit=${PAGE_SIZE}`, { access_token: API_KEY }, 60000);
+      if (r.status !== 200) { console.error(`[MovieBaseSync] ❌ /movies ${r.status}`); break; }
+    } catch (e) { console.error(`[MovieBaseSync] ❌ Fetch skip=${skip}: ${e.message}`); break; }
 
+    const page = r.body;
     if (!Array.isArray(page) || page.length === 0) break;
 
     for (const m of page) {
       try {
         await Movie.findOneAndUpdate(
           { _movieBaseId: m.id },
-          {
-            $set: {
+          { $set: {
               _movieBaseId: m.id,
               title:       m.title,
               language:    m.language,
@@ -148,8 +125,7 @@ async function pullMovies() {
               cast:  m.cast  ? m.cast.split(',').map(s => s.trim()).filter(Boolean)  : [],
               genre: m.genre ? m.genre.split(',').map(s => s.trim()).filter(Boolean) : [],
               image: m.poster || null,
-            },
-          },
+          }},
           { upsert: true, new: true, setDefaultsOnInsert: true }
         );
         upserted++;
@@ -158,68 +134,85 @@ async function pullMovies() {
         failed++;
       }
     }
-
     total += page.length;
     skip  += PAGE_SIZE;
-    console.log(`[MovieBaseSync]   ↳ pulled ${total} movies so far…`);
+    console.log(`[MovieBaseSync]   ↳ pulled ${total}…`);
     if (page.length < PAGE_SIZE) break;
   }
-
   return { total, upserted, failed };
+}
+
+// ── Phase 3: Enrich details in background (non-blocking) ─────────────────
+async function enrichDetails() {
+  if (!BASE_URL) return;
+  console.log(`[MovieBaseSync] 🔍 Enriching movie details in background…`);
+  for (const lang of LANGUAGES) {
+    try {
+      const r = await POST(
+        `${BASE_URL}/sync/details?language=${encodeURIComponent(lang)}&batch_size=${DETAIL_BATCH}`,
+        { access_token: API_KEY },
+        5 * 60 * 1000
+      );
+      if (r.status === 200) {
+        console.log(`[MovieBaseSync] 📝 ${lang} details: enriched=${r.body.enriched} (${r.body.elapsed}s)`);
+        // Pull updated data into MongoDB
+        await pullMovies();
+      }
+    } catch (e) {
+      console.warn(`[MovieBaseSync] ⚠️  Detail enrich ${lang}: ${e.message}`);
+    }
+    await sleep(2000);
+  }
+  console.log(`[MovieBaseSync] ✅ Detail enrichment pass complete`);
 }
 
 // ── Main sync ─────────────────────────────────────────────────────────────
 async function runSync() {
-  if (!BASE_URL) {
-    console.log('[MovieBaseSync] MOVIE_BASE_URL not set — skipping');
-    return;
-  }
+  if (!BASE_URL) { console.log('[MovieBaseSync] No MOVIE_BASE_URL'); return; }
 
   const start = Date.now();
   console.log(`[MovieBaseSync] 🔄 Sync from ${BASE_URL}`);
 
-  // 1. Wake service
   const alive = await waitForService();
   if (!alive) return;
 
-  // 2. Check if movie_base already has data
-  const existingCount = await getMovieBaseCount();
-  console.log(`[MovieBaseSync] 📊 movie_base has ${existingCount} movies in PostgreSQL`);
+  // Check existing count
+  let existingCount = 0;
+  try {
+    const r = await GET(`${BASE_URL}/movies/count`, { access_token: API_KEY }, 15000);
+    existingCount = r.body.count || 0;
+  } catch (e) {}
+  console.log(`[MovieBaseSync] 📊 movie_base has ${existingCount} movies`);
 
-  // 3. If empty, scrape each language synchronously (one at a time)
+  // Phase 1: Scrape titles if DB is empty (fast — no individual page visits)
   if (existingCount === 0) {
-    console.log(`[MovieBaseSync] 🕷️  DB empty — scraping all languages one by one…`);
+    console.log(`[MovieBaseSync] 🕷️  Scraping titles for all languages…`);
     let totalSaved = 0;
     for (const lang of LANGUAGES) {
-      const saved = await scrapeLanguage(lang);
-      totalSaved += saved;
-      // Small pause between languages to be polite to Wikipedia
-      await sleep(3000);
+      totalSaved += await scrapeTitles(lang);
+      await sleep(2000);
     }
-    console.log(`[MovieBaseSync] 📊 Scraping done — ${totalSaved} movies saved to PostgreSQL`);
-
+    console.log(`[MovieBaseSync] 📊 Title scrape done: ${totalSaved} movies in PostgreSQL`);
     if (totalSaved === 0) {
-      console.error(`[MovieBaseSync] ❌ Scraping returned 0 movies — check movie_base logs`);
+      console.error(`[MovieBaseSync] ❌ Nothing scraped — check movie_base logs`);
       return;
     }
   }
 
-  // 4. Pull all movies from movie_base into MongoDB
+  // Phase 2: Pull into MongoDB
   const { total, upserted, failed } = await pullMovies();
-
   const ms = Date.now() - start;
-  console.log(
-    `[MovieBaseSync] ✅ Done in ${(ms/1000).toFixed(1)}s | ` +
-    `fetched=${total} upserted=${upserted} failed=${failed}`
-  );
+  console.log(`[MovieBaseSync] ✅ Pull done in ${(ms/1000).toFixed(1)}s | fetched=${total} upserted=${upserted} failed=${failed}`);
+
+  // Phase 3: Enrich details in background (doesn't block startup)
+  if (existingCount === 0 || total > 0) {
+    enrichDetails().catch(e => console.warn('[MovieBaseSync] Enrich error:', e.message));
+  }
 }
 
 // ── Scheduler ─────────────────────────────────────────────────────────────
 function start() {
-  if (!BASE_URL) {
-    console.log('[MovieBaseSync] MOVIE_BASE_URL not set — disabled');
-    return;
-  }
+  if (!BASE_URL) { console.log('[MovieBaseSync] MOVIE_BASE_URL not set — disabled'); return; }
   _timer = setInterval(() => {
     runSync().catch(e => console.error('[MovieBaseSync] Interval error:', e.message));
   }, INTERVAL);
