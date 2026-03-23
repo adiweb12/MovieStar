@@ -197,6 +197,19 @@ async function runSync() {
       console.error(`[MovieBaseSync] ❌ Nothing scraped — check movie_base logs`);
       return;
     }
+
+    // Clean up any actor/person records that slipped through the scraper
+    try {
+      const cr = await POST(
+        `${BASE_URL}/cleanup/actors`,
+        { access_token: API_KEY },
+        30000
+      );
+      if (cr.status === 200)
+        console.log(`[MovieBaseSync] 🧹 Cleanup: removed ${cr.body.deleted} non-film records`);
+    } catch (e) {
+      console.warn(`[MovieBaseSync] ⚠️  Cleanup failed: ${e.message}`);
+    }
   }
 
   // Phase 2: Pull into MongoDB
