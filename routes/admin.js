@@ -33,4 +33,16 @@ router.post('/sync-movies', async (req, res) => {
   }
 });
 
+// Force re-pull from movie_base (gets latest Cloudinary URLs)
+router.post('/repull-movies', async (req, res) => {
+  try {
+    const { pullMovies } = require('../services/movieBaseSync');
+    pullMovies(false).then(r => console.log('[Admin] Re-pull done:', r))
+      .catch(e => console.error('[Admin] Re-pull error:', e));
+    res.redirect('/admin?success=Re-pull+started+—+fetching+latest+Cloudinary+URLs');
+  } catch(e) {
+    res.redirect('/admin?error='+encodeURIComponent(e.message));
+  }
+});
+
 module.exports = router;

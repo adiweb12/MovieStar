@@ -41,9 +41,14 @@
           <p>Pulls movies from <strong>movie_base</strong> microservice every 3 hours.</p>
           <p class="sync-sub">Cloudinary poster URLs are included. Manual admin movies are never overwritten.</p>
         </div>
-        <form action="/admin/sync-movies" method="POST" style="flex-shrink:0">
-          <button type="submit" class="btn btn-red"><i class="fas fa-rotate"></i> Sync Now</button>
-        </form>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;flex-shrink:0">
+          <form action="/admin/sync-movies" method="POST">
+            <button type="submit" class="btn btn-red"><i class="fas fa-rotate"></i> Full Sync</button>
+          </form>
+          <form action="/admin/repull-movies" method="POST">
+            <button type="submit" class="btn btn-ghost"><i class="fas fa-download"></i> Re-pull Images</button>
+          </form>
+        </div>
       </div>
     </div>
 
