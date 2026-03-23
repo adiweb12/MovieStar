@@ -83,7 +83,7 @@ async function waitForService() {
 
 // ── Trigger sync/now for one language (SYNCHRONOUS — waits for result) ───
 async function scrapeLanguage(language) {
-  const url = `${BASE_URL}/sync/now?language=${encodeURIComponent(language)}&max_movies=200&skip_posters=true`;
+  const url = `${BASE_URL}/sync/now?language=${encodeURIComponent(language)}&max_movies=500&skip_posters=true`;
   console.log(`[MovieBaseSync] 🕷️  Scraping ${language}…`);
   try {
     const r = await POST(url, { access_token: API_KEY }, SYNC_TIMEOUT);
