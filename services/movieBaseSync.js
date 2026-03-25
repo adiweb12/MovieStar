@@ -90,40 +90,29 @@ async function pullMovies() {
 
     for(const m of page){
       try{
-        // ── KEY FIX: never overwrite a good image with null ──
-        // Build the $set object carefully
-        const setFields = {
+        // Always safe defaults — never pass undefined to Mongoose
+        const setDoc = {
           _movieBaseId: m.id,
-          title:        m.title,
-          language:     m.language,
-          type:         m.release_type||'released',
+          title:        (m.title    ||'').trim() || 'Untitled',
+          language:     (m.language ||'').trim() || 'Unknown',
+          type:         m.release_type || 'released',
           releaseDate:  m.release_date ? new Date(m.release_date) : null,
-          description:  m.description ||'',
-          director:     m.director    ||'',
-          cast:  m.cast  ? m.cast.split(',').map(s=>s.trim()).filter(Boolean) : [],
-          genre: m.genre ? m.genre.split(',').map(s=>s.trim()).filter(Boolean): [],
+          description:  (m.description||'').trim(),
+          director:     (m.director   ||'').trim(),
+          cast:  m.cast  ? String(m.cast).split(',').map(s=>s.trim()).filter(Boolean) : [],
+          genre: m.genre ? String(m.genre).split(',').map(s=>s.trim()).filter(Boolean): [],
         };
+        // Only set image when movie_base provides one — never null-overwrite existing
+        if(m.poster) setDoc.image = m.poster;
 
-        // Only update image if movie_base gives us something better
-        if(m.poster){
-          setFields.image = m.poster;
-        }
-        // If no poster from movie_base, don't touch existing image in MongoDB
-        // Use $setOnInsert for new records (default placeholder), $set for updates
-
-        const existing = await Movie.findOne({_movieBaseId: m.id}).select('image');
-        if(!existing){
-          // New movie - save with whatever we have (even null)
-          setFields.image = m.poster || null;
-          await Movie.create(setFields);
-        } else {
-          // Existing - only update image if we have a better one
-          const update = {$set: setFields};
-          if(!m.poster){
-            delete update.$set.image; // don't overwrite existing good image
-          }
-          await Movie.updateOne({_movieBaseId: m.id}, update);
-        }
+        await Movie.findOneAndUpdate(
+          { _movieBaseId: m.id },
+          {
+            $set: setDoc,
+            $setOnInsert: { image: m.poster||null, averageRating:0, reviewCount:0 },
+          },
+          { upsert: true, new: true, setDefaultsOnInsert: true }
+        );
         upserted++;
       }catch(e){
         console.warn(`[Sync] ⚠️  "${m.title}": ${e.message}`);
