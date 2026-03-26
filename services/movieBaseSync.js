@@ -90,29 +90,44 @@ async function pullMovies() {
 
     for(const m of page){
       try{
-        // Always safe defaults — never pass undefined to Mongoose
+        // Build safe update doc — every field explicitly set, never undefined
+        const now  = new Date();
         const setDoc = {
           _movieBaseId: m.id,
-          title:        (m.title    ||'').trim() || 'Untitled',
-          language:     (m.language ||'').trim() || 'Unknown',
+          title:        (String(m.title    ||'')).trim() || 'Untitled',
+          language:     (String(m.language ||'')).trim() || 'Unknown',
           type:         m.release_type || 'released',
           releaseDate:  m.release_date ? new Date(m.release_date) : null,
-          description:  (m.description||'').trim(),
-          director:     (m.director   ||'').trim(),
+          description:  String(m.description||''),
+          director:     String(m.director   ||''),
           cast:  m.cast  ? String(m.cast).split(',').map(s=>s.trim()).filter(Boolean) : [],
           genre: m.genre ? String(m.genre).split(',').map(s=>s.trim()).filter(Boolean): [],
+          updatedAt:    now,
         };
-        // Only set image when movie_base provides one — never null-overwrite existing
-        if(m.poster) setDoc.image = m.poster;
 
-        await Movie.findOneAndUpdate(
+        // Use raw MongoDB driver — bypasses ALL Mongoose validators
+        // This is intentional: movie_base data is trusted, description can be empty
+        await Movie.collection.updateOne(
           { _movieBaseId: m.id },
           {
             $set: setDoc,
-            $setOnInsert: { image: m.poster||null, averageRating:0, reviewCount:0 },
+            $setOnInsert: {
+              // On new doc only: set image + audit fields
+              image:         m.poster || null,
+              averageRating: 0,
+              reviewCount:   0,
+              createdAt:     now,
+            },
           },
-          { upsert: true, new: true, setDefaultsOnInsert: true }
+          { upsert: true }
         );
+        // If movie_base gave us a poster, always update it (even on existing docs)
+        if(m.poster){
+          await Movie.collection.updateOne(
+            { _movieBaseId: m.id },
+            { $set: { image: m.poster } }
+          );
+        }
         upserted++;
       }catch(e){
         console.warn(`[Sync] ⚠️  "${m.title}": ${e.message}`);
